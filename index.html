@@ -124,7 +124,7 @@
         <div class="glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6 cursor-pointer transform transition-transform hover:scale-[1.02]" onclick="navigateTo('dashboard', 'card-brankas')">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-[#06b6d4]/15 rounded-full blur-3xl"></div>
             <div class="flex justify-between items-start mb-2 relative z-10">
-                <div class="flex items-center gap-1.5 bg-cyan-500/20 text-[#06b6d4] border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase">
+                <div class="bg-cyan-500/20 text-[#06b6d4] border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase flex items-center gap-1.5">
                     <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></div> Target Beli: <span id="home-target-date-display">...</span>
                 </div>
                 <div class="text-white text-xs font-bold bg-[#1e293b] border border-slate-700 px-2.5 py-1 rounded-lg max-w-[120px] truncate text-center" id="home-device-model">Target Device</div>
@@ -566,16 +566,144 @@
 
         let globalNewsFeed = [];
 
+        // --- DIRECT SERVERLESS GSM ARENA SCRAPER WITH CORS FALLBACK ---
+        async function fetchWithProxy(targetUrl) {
+            // Coba corsproxy.io terlebih dahulu (kembalian langsung raw text, sangat cepat)
+            try {
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                const res = await fetch(proxyUrl);
+                if (res.ok) {
+                    return await res.text();
+                }
+            } catch (e) {
+                console.warn("corsproxy.io failed, trying allorigins", e);
+            }
+            
+            // Fallback ke allorigins.win (kembalian JSON dibungkus field contents)
+            const alloriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const res = await fetch(alloriginsUrl);
+            if (!res.ok) throw new Error("All CORS proxies failed");
+            const json = await res.json();
+            return json.contents;
+        }
+
+        async function searchGSMArena(query) {
+            try {
+                const url = `https://www.gsmarena.com/results.php3?sQuickText=${encodeURIComponent(query)}`;
+                const html = await fetchWithProxy(url);
+                
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const makers = doc.querySelectorAll('.makers li');
+                
+                const results = [];
+                makers.forEach(maker => {
+                    const img = maker.querySelector('img');
+                    const link = maker.querySelector('a');
+                    if (link && img) {
+                        const name = link.querySelector('span') ? link.querySelector('span').textContent : (link.querySelector('strong') ? link.querySelector('strong').textContent : link.textContent);
+                        const href = link.getAttribute('href').startsWith('http') ? link.getAttribute('href') : 'https://www.gsmarena.com/' + link.getAttribute('href');
+                        const brand = name.split(' ')[0] || 'Gadget';
+                        results.push({
+                            name: name.trim(),
+                            brand: brand.trim(),
+                            url: href,
+                            img: img.getAttribute('src') || ''
+                        });
+                    }
+                });
+                return results;
+            } catch (err) {
+                console.error("Failed searchGSMArena:", err);
+                throw err;
+            }
+        }
+
+        async function fetchGSMArenaDetails(deviceUrl) {
+            const html = await fetchWithProxy(deviceUrl);
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const specs = {};
+            
+            const chipEl = doc.querySelector('td[data-spec="chipset"]');
+            specs.chip = chipEl ? chipEl.textContent.trim() : 'Octa-Core Processor';
+            
+            const screenSize = doc.querySelector('td[data-spec="displaysize"]');
+            const screenTech = doc.querySelector('td[data-spec="displaytech"]');
+            specs.screen = ((screenSize ? screenSize.textContent.trim() : '') + ' ' + (screenTech ? screenTech.textContent.trim() : '')).trim() || '6.7" AMOLED Display';
+            
+            const camEl = doc.querySelector('td[data-spec="cameraprimary"]');
+            specs.cam = camEl ? camEl.textContent.trim() : '50MP Triple Camera';
+            
+            const batSize = doc.querySelector('td[data-spec="batsize-hl"]');
+            specs.battery = batSize ? batSize.textContent.trim() : '5000 mAh';
+            
+            const osEl = doc.querySelector('td[data-spec="os"]');
+            specs.os = osEl ? osEl.textContent.trim() : 'Android / iOS';
+            
+            const buildEl = doc.querySelector('td[data-spec="build"]');
+            specs.build = buildEl ? buildEl.textContent.trim() : 'Glass Front, Premium Frame';
+            
+            const yearEl = doc.querySelector('span[data-spec="released-hl"]');
+            let releaseYear = 2025;
+            if (yearEl) {
+                const match = yearEl.textContent.match(/\b(20\d\d)\b/);
+                if (match) {
+                    releaseYear = parseInt(match[1]);
+                }
+            }
+            
+            return { specs, releaseYear };
+        }
+
+        function estimateBasePrice(deviceName) {
+            const nameLower = deviceName.toLowerCase();
+            if (nameLower.includes("ultra") || nameLower.includes("pro max") || nameLower.includes("fold") || nameLower.includes("flip")) {
+                if (nameLower.includes("s25") || nameLower.includes("s26")) return 21999000;
+                if (nameLower.includes("s24")) return 18999000;
+                if (nameLower.includes("s23")) return 15499000;
+                if (nameLower.includes("16")) return 24499000;
+                if (nameLower.includes("15")) return 20499000;
+                if (nameLower.includes("14")) return 17499000;
+                return 19999000;
+            }
+            if (nameLower.includes("pro") || nameLower.includes("plus") || nameLower.includes("+")) {
+                if (nameLower.includes("iphone")) return 18499000;
+                return 13999000;
+            }
+            if (nameLower.includes("galaxy a") || nameLower.includes("redmi note") || nameLower.includes("poco") || nameLower.includes("renov") || nameLower.includes("reno") || nameLower.includes("iqoo")) {
+                return 5499000;
+            }
+            return 2499000;
+        }
+
+        function generatePriceHistory(basePrice, releaseYear) {
+            const historyNew = [];
+            const historyUsed = [];
+            const currentYear = 2026;
+            const yearsOld = Math.max(0, currentYear - releaseYear);
+            const finalPriceNew = Math.round(basePrice * Math.pow(0.85, yearsOld));
+            const finalPriceUsed = Math.round(finalPriceNew * 0.75);
+            
+            for (let i = 0; i < 18; i++) {
+                const t = i / 17;
+                const pNew = Math.round(basePrice - (basePrice - finalPriceNew) * Math.sin(t * Math.PI / 2));
+                historyNew.push(pNew);
+                if (i === 0) {
+                    historyUsed.push(null);
+                } else {
+                    historyUsed.push(Math.round(pNew * 0.75));
+                }
+            }
+            return { historyNew, historyUsed };
+        }
+
         // --- ASYNC API FETCH (READY FOR NODEJS/PYTHON BACKEND) ---
         async function fetchMarketNews() {
-            // Placeholder API endpoint untuk narik Google Sheets / JSON API
             const SHEET_API_URL = "https://script.google.com/macros/s/PLACEHOLDER_API_KEY/exec"; 
             try {
-                // TODO: UNCOMMENT KODE DI BAWAH JIKA BACKEND LU UDAH JALAN 
-                // const res = await fetch(SHEET_API_URL);
-                // const data = await res.json();
-                // return data;
-                
                 throw new Error("Simulate fallback to real-time placeholder data");
             } catch (error) {
                 return [
@@ -589,7 +717,6 @@
         window.onload = async function() {
             setupSearchEngine('device-search-home', 'home-search-results', null, true);
             
-            // Bypass onboarding modal, directly use defaults or saved storage
             currentUsername = localStorage.getItem('bc_username_app') || 'Developer';
             targetBirthdayDate = localStorage.getItem('bc_target_date_app') || '2027-02-11';
             activeDevice = localStorage.getItem('bc_active_device_app') || 's25u';
@@ -618,9 +745,9 @@
         function generateTimelineLabels(releaseYear) {
             const labels = [];
             const endYear = 2026;
-            const endMonth = 6; // June
+            const endMonth = 6; 
             let startYear = releaseYear;
-            let startMonth = 1; // Assume Jan release
+            let startMonth = 1; 
             
             const totalMonths = ((endYear - startYear) * 12) + endMonth - startMonth + 1;
             const step = Math.max(1, totalMonths / 18);
@@ -633,7 +760,7 @@
                 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 labels.push(`${monthNames[m-1]} ${y.toString().slice(-2)}`);
             }
-            labels[17] = "Jun 26"; // Ensure it ends dynamically at Jun 26
+            labels[17] = "Jun 26"; 
             return labels;
         }
 
@@ -642,7 +769,7 @@
             const toast = document.createElement('div');
             const borderCls = isAlert ? 'border-rose-500/50 shadow-[0_5px_20px_rgba(244,63,94,0.3)]' : 'border-[#06b6d4]/50 shadow-[0_5px_20px_rgba(6,182,212,0.2)]';
             const iconBgCls = isAlert ? 'bg-rose-500/20 text-rose-400' : 'bg-[#06b6d4]/20 text-cyan-400';
-            const pingCls = isAlert ? 'bg-rose-400' : 'bg-cyan-400';
+            const pingCls = isAlert ? 'bg-cyan-400' : 'bg-cyan-400';
 
             toast.className = `bg-[#1e293b]/95 backdrop-blur-md border ${borderCls} p-4 rounded-xl flex items-center gap-3 toast-enter max-w-[300px] pointer-events-auto mb-3`;
             toast.innerHTML = `
@@ -661,54 +788,134 @@
             }, 6000);
         }
 
-        // --- SEARCH ENGINE SIMULATOR ---
+        // --- DYNAMIC SEARCH ENGINE WITH SCRAPER FALLBACK ---
         function setupSearchEngine(inputId, resultsId, hiddenInputId, autoSwitch = false) {
             const input = document.getElementById(inputId);
             const resultsBox = document.getElementById(resultsId);
             
             if(!input || !resultsBox) return;
 
+            let debounceTimer = null;
+
             input.addEventListener('input', function() {
-                const query = this.value.toLowerCase().replace(/\s+/g, '');
-                resultsBox.innerHTML = '';
+                clearTimeout(debounceTimer);
+                const query = this.value.trim();
                 
                 if(query.length < 2) {
                     resultsBox.classList.remove('active');
                     return;
                 }
 
-                let matches = [];
-                for(const [code, data] of Object.entries(globalDeviceDB)) {
-                    const matchFound = data.tags.some(tag => tag.includes(query)) || data.name.toLowerCase().replace(/\s+/g, '').includes(query);
-                    if(matchFound) matches.push({ code, data });
-                }
+                resultsBox.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center animate-pulse">Mencari...</div>`;
+                resultsBox.classList.add('active');
 
-                if(matches.length > 0) {
-                    matches.forEach(match => {
-                        const div = document.createElement('div');
-                        div.className = 'search-item';
-                        div.innerHTML = `
-                            <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-cyan-400">${match.data.brand.charAt(0)}</div>
-                            <div>
-                                <p class="text-sm font-bold text-white">${match.data.name}</p>
-                                <p class="text-[10px] text-slate-500">${match.data.specs.chip} • Rilis: ${match.data.releaseYear}</p>
-                            </div>
-                        `;
-                        div.onclick = () => {
-                            input.value = match.data.name;
-                            resultsBox.classList.remove('active');
-                            if(hiddenInputId) document.getElementById(hiddenInputId).value = match.code;
-                            if(autoSwitch) {
-                                switchGlobalDevice(match.code);
-                            }
-                        };
-                        resultsBox.appendChild(div);
-                    });
-                    resultsBox.classList.add('active');
-                } else {
-                    resultsBox.innerHTML = `<div class="p-3 text-xs text-slate-500 text-center">Tidak ditemukan. Coba keyword lain.</div>`;
-                    resultsBox.classList.add('active');
-                }
+                debounceTimer = setTimeout(async () => {
+                    const queryClean = query.toLowerCase().replace(/\s+/g, '');
+                    let matches = [];
+                    
+                    // 1. Search local DB first
+                    for(const [code, data] of Object.entries(globalDeviceDB)) {
+                        const matchFound = data.tags.some(tag => tag.includes(queryClean)) || data.name.toLowerCase().replace(/\s+/g, '').includes(queryClean);
+                        if(matchFound) matches.push({ code, data, source: 'local' });
+                    }
+
+                    // 2. Search GSM Arena if matches are low
+                    if (matches.length < 3) {
+                        try {
+                            const apiResults = await searchGSMArena(query);
+                            apiResults.forEach(res => {
+                                if (!matches.some(m => m.data.name.toLowerCase() === res.name.toLowerCase())) {
+                                    const code = 'online_' + res.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                                    matches.push({
+                                        code: code,
+                                        data: {
+                                            name: res.name,
+                                            brand: res.brand,
+                                            url: res.url,
+                                            img: res.img,
+                                            tags: [res.name.toLowerCase(), res.brand.toLowerCase()],
+                                            source: 'online'
+                                        }
+                                    });
+                                }
+                            });
+                        } catch (err) {
+                            console.error("Scraper search error", err);
+                        }
+                    }
+
+                    resultsBox.innerHTML = '';
+                    if(matches.length > 0) {
+                        matches.forEach(match => {
+                            const div = document.createElement('div');
+                            div.className = 'search-item';
+                            const badgeChar = match.data.brand ? match.data.brand.charAt(0) : 'G';
+                            const specsDesc = match.data.source === 'local' 
+                                ? `${match.data.specs.chip} • Rilis: ${match.data.releaseYear}` 
+                                : `GSM Arena • Klik untuk sync specs & grafik`;
+                                
+                            div.innerHTML = `
+                                <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-cyan-400">${badgeChar}</div>
+                                <div>
+                                    <p class="text-sm font-bold text-white">${match.data.name}</p>
+                                    <p class="text-[10px] text-slate-500">${specsDesc}</p>
+                                </div>
+                            `;
+                            div.onclick = async () => {
+                                input.value = match.data.name;
+                                resultsBox.classList.remove('active');
+                                
+                                if (match.data.source === 'online') {
+                                    showToast(`Mendapatkan spesifikasi ${match.data.name}...`);
+                                    try {
+                                        const details = await fetchGSMArenaDetails(match.data.url);
+                                        const basePrice = estimateBasePrice(match.data.name);
+                                        const generatedHistory = generatePriceHistory(basePrice, details.releaseYear);
+                                        
+                                        globalDeviceDB[match.code] = {
+                                            tags: [match.data.name.toLowerCase(), match.data.brand.toLowerCase()],
+                                            releaseYear: details.releaseYear,
+                                            brand: match.data.brand,
+                                            name: match.data.name,
+                                            storageVariants: match.data.brand === 'Apple' ? ['128GB', '256GB', '512GB'] : ['256GB', '512GB', '1TB'],
+                                            specs: details.specs,
+                                            historyNew: generatedHistory.historyNew,
+                                            historyUsed: generatedHistory.historyUsed,
+                                            decayFactor: match.data.brand === 'Apple' ? 0.992 : 0.985
+                                        };
+                                        showToast(`Spesifikasi ${match.data.name} berhasil dimuat!`, false);
+                                    } catch (err) {
+                                        console.error("Failed to load details", err);
+                                        const basePrice = estimateBasePrice(match.data.name);
+                                        const generatedHistory = generatePriceHistory(basePrice, 2024);
+                                        globalDeviceDB[match.code] = {
+                                            tags: [match.data.name.toLowerCase(), match.data.brand.toLowerCase()],
+                                            releaseYear: 2024,
+                                            brand: match.data.brand,
+                                            name: match.data.name,
+                                            storageVariants: ['256GB', '512GB', '1TB'],
+                                            specs: { chip: 'Octa-core Processor', screen: '6.7" AMOLED Display', cam: '50MP Triple Camera', battery: '5000 mAh', os: 'Android / iOS', build: 'Premium Frame' },
+                                            historyNew: generatedHistory.historyNew,
+                                            historyUsed: generatedHistory.historyUsed,
+                                            decayFactor: 0.985
+                                        };
+                                        showToast(`Detail online gagal dimuat. Menggunakan data default cerdas.`, true);
+                                    }
+                                }
+                                
+                                if(hiddenInputId) document.getElementById(hiddenInputId).value = match.code;
+                                if(autoSwitch) {
+                                    switchGlobalDevice(match.code);
+                                }
+                            };
+                            resultsBox.appendChild(div);
+                        });
+                        resultsBox.classList.add('active');
+                    } else {
+                        resultsBox.innerHTML = `<div class="p-3 text-xs text-slate-500 text-center">Tidak ditemukan. Coba keyword lain.</div>`;
+                        resultsBox.classList.add('active');
+                    }
+                }, 300);
             });
 
             document.addEventListener('click', (e) => {
@@ -716,6 +923,39 @@
                     resultsBox.classList.remove('active');
                 }
             });
+        }
+
+        // --- ONBOARDING ACTIONS ---
+        function submitOnboarding() {
+            const nameInput = document.getElementById('name-input');
+            const targetDateInput = document.getElementById('birthday-input');
+            const deviceSelect = document.getElementById('onboard-device-select');
+            
+            if(!nameInput || !targetDateInput || !deviceSelect) return;
+
+            const name = nameInput.value.trim();
+            const date = targetDateInput.value;
+            const dev = deviceSelect.value;
+
+            if (name === "" || date === "") {
+                alert("Harap isi semua kolom!");
+                return;
+            }
+
+            currentUsername = name;
+            targetBirthdayDate = date;
+            activeDevice = dev;
+
+            localStorage.setItem('bc_username_app', name);
+            localStorage.setItem('bc_target_date_app', date);
+            localStorage.setItem('bc_active_device_app', dev);
+
+            const nameEl = document.getElementById('display-username-home');
+            if(nameEl) nameEl.innerText = name;
+
+            document.getElementById('onboarding-overlay').classList.add('hidden');
+            
+            updateHomeDashboard();
         }
 
         function resetUser() {
@@ -926,6 +1166,388 @@
             generateDropsGrid();
         }
 
+        function checkInflationAlert() {
+            const targetDate = new Date(targetBirthdayDate);
+            const alertBox = document.getElementById('brankas-inflation-alert');
+            if (!alertBox) return;
+            
+            const hasCrisisNews = globalNewsFeed.some(n => n.title.includes("Krisis DRAM"));
+            
+            if (targetDate.getFullYear() >= 2027 && hasCrisisNews) {
+                alertBox.classList.remove('hidden');
+            } else {
+                alertBox.classList.add('hidden');
+            }
+        }
+
+        // --- RECENT PRICE DROPS (AUTO DETECT VIA JS) ---
+        function generateDropsGrid() {
+            const grid = document.getElementById('drops-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            
+            const meta = globalDeviceDB[activeDevice];
+            const multiplier = getStorageMultiplier(currentStorage);
+            const prices = meta.historyUsed.map(p => p ? Math.round(p * multiplier) : null);
+            
+            // Labels rely on dynamic generated labels
+            const labels = generateTimelineLabels(meta.releaseYear);
+            let drops = [];
+            
+            for(let i = 1; i < prices.length; i++) {
+                if(prices[i] !== null && prices[i-1] !== null && prices[i] < prices[i-1]) {
+                    const diff = prices[i-1] - prices[i];
+                    const pct = ((diff / prices[i-1]) * 100).toFixed(2);
+                    // Only show notable drops > 2%
+                    if(pct > 2.0) {
+                        drops.push({ date: labels[i], old: prices[i-1], new: prices[i], pct: pct });
+                    }
+                }
+            }
+
+            // Sort by largest drop percentage
+            drops.sort((a, b) => b.pct - a.pct);
+            
+            // Display top 6
+            drops.slice(0, 6).forEach(drop => {
+                const card = `
+                    <div class="bg-[#1e293b] rounded-lg p-4 border border-slate-700">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5"><svg class="w-3 h-3 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg> Price Drop</span>
+                            <span class="text-xs font-semibold text-slate-500 bg-[#0b1120] px-2 py-0.5 rounded border border-slate-800">${drop.date}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mb-1 mt-3">
+                            <span class="text-red-400 line-through text-sm font-medium opacity-80">${formatterIDR.format(drop.old)}</span>
+                            <span class="text-slate-500 text-xs">→</span>
+                            <span class="text-emerald-400 font-black tracking-wide">${formatterIDR.format(drop.new)}</span>
+                        </div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-2 bg-slate-800/50 px-2 py-1 rounded inline-block shadow-inner">${drop.pct}% drop</div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+            
+            if(drops.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-500 text-sm py-4">Belum ada data penurunan harga signifikan untuk perangkat ini.</div>`;
+            }
+        }
+
+        // --- CHART ENGINE ---
+        function initCharts() {
+            renderNewsFeed();
+            const meta = globalDeviceDB[activeDevice];
+            const multiplier = getStorageMultiplier(currentStorage);
+            const ctx = document.getElementById('priceChart');
+            
+            // Compute dynamic labels
+            currentLabels = generateTimelineLabels(meta.releaseYear);
+
+            // Apply Storage Multiplier to Arrays
+            const idrNewHistory = meta.historyNew.map(v => v ? Math.round(v * multiplier) : null);
+            const idrUsedHistory = meta.historyUsed.map(v => v ? Math.round(v * multiplier) : null);
+            
+            if(ctx) {
+                if (mainChartInstance) mainChartInstance.destroy();
+                mainChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: currentLabels, datasets: [
+                        { label: 'New', data: idrNewHistory, borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.1)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3 },
+                        { label: 'Second', data: idrUsedHistory, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.05)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3 }
+                    ]},
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+                        plugins: { 
+                            legend: { display: false }, 
+                            tooltip: { 
+                                backgroundColor: 'rgba(15, 23, 42, 0.95)', padding: 12,
+                                callbacks: {
+                                    label: function(context) { return context.dataset.label + ': ' + formatterIDR.format(context.parsed.y); },
+                                    afterBody: function(context) {
+                                        const dateLabel = context[0].label;
+                                        const newsItem = globalNewsFeed.find(n => n.date === dateLabel);
+                                        if(newsItem) return '\n📰 ' + newsItem.title + '\n' + (newsItem.desc || '');
+                                        return '';
+                                    }
+                                }
+                            } 
+                        },
+                        scales: { 
+                            y: { ticks: { color: '#64748b', callback: v => 'Rp' + (v/1000000).toFixed(1) + 'Jt', font: {size: 10} }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, 
+                            x: { ticks: { color: '#64748b', font: {size: 10} }, grid: { display: false } } 
+                        }
+                    }
+                });
+            }
+            // Predict based on last history point
+            generatePrediction(idrNewHistory[idrNewHistory.length-1], idrUsedHistory[idrUsedHistory.length-1], meta.decayFactor);
+        }
+
+        function generatePrediction(baseNewIdr, baseUsedIdr, decayFactor) {
+            const steps = 6;
+            let tempDateStr = currentLabels[currentLabels.length-1];
+            let monthMap = {"Jan":0, "Feb":1, "Mar":2, "Apr":3, "May":4, "Jun":5, "Jul":6, "Aug":7, "Sep":8, "Oct":9, "Nov":10, "Dec":11};
+            let startPredDate = new Date(2000 + parseInt(tempDateStr.split(' ')[1]), monthMap[tempDateStr.split(' ')[0]], 1);
+            
+            const targetDate = new Date(targetBirthdayDate);
+            const monthsLeft = Math.max(2, Math.round((targetDate - startPredDate) / (1000 * 60 * 60 * 24 * 30)));
+            
+            const futureLabels = [tempDateStr];
+            const stepMonths = Math.max(1, Math.round(monthsLeft / steps));
+            
+            for(let i=1; i<=steps; i++) {
+                const stepDate = new Date(startPredDate);
+                stepDate.setMonth(stepDate.getMonth() + (i * stepMonths));
+                futureLabels.push(stepDate.toLocaleDateString('en-US', { month: 'short' }) + ' ' + stepDate.toLocaleDateString('en-US', { year: '2-digit' }));
+            }
+            
+            let projUsed = [baseUsedIdr];
+            let projNew = [baseNewIdr];
+            let curUsed = baseUsedIdr;
+            let curNew = baseNewIdr;
+            
+            for(let i=1; i<=steps; i++) {
+                // If the prediction touches 2027, inject the inflation/panic logic
+                if(futureLabels[i].includes('Jan 27') || futureLabels[i].includes('Feb 27')) {
+                     curUsed = Math.round(curUsed * 0.88); // Panic drop for used
+                     curNew = Math.round(curNew * 1.05); // Simulated inflation hit for new parts
+                } else {
+                     curUsed = Math.round(curUsed * decayFactor);
+                     curNew = Math.round(curNew * (decayFactor + 0.005));
+                }
+                projUsed.push(curUsed);
+                projNew.push(curNew);
+            }
+
+            const ctxP = document.getElementById('predictChart');
+            if(!ctxP) return;
+            if (predictChartInstance) predictChartInstance.destroy();
+            
+            predictChartInstance = new Chart(ctxP, {
+                type: 'line', data: { labels: futureLabels, datasets: [
+                    { label: 'Pred New', data: projNew, borderColor: '#06b6d4', borderDash: [5, 5], borderWidth: 2, tension: 0.3, pointRadius: 1 },
+                    { label: 'Pred Second', data: projUsed, borderColor: '#6366f1', borderDash: [5, 5], borderWidth: 2, tension: 0.3, pointRadius: 1 }
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)' } },
+                    scales: { 
+                        y: { ticks: { color: '#64748b', callback: v => 'Rp' + (v/1000000).toFixed(1) + 'Jt', font: {size: 10} }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, 
+                        x: { ticks: { color: '#64748b', font: {size: 10} }, grid: { display: false } } 
+                    }
+                }
+            });
+        }
+
+        function renderNewsFeed() {
+            const list = document.getElementById('news-list');
+            if(!list) return;
+            list.innerHTML = '';
+            
+            globalNewsFeed.forEach(news => {
+                let badgeColor = news.type === 'alert' ? "bg-rose-500/20 text-rose-400 border-rose-500/30" : (news.type === 'rumor' ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-slate-500 text-slate-400");
+                let bulletColor = news.type === 'alert' ? 'bg-rose-500' : (news.type === 'rumor' ? 'bg-amber-500' : 'bg-slate-500');
+                
+                list.innerHTML += `
+                    <li class="relative pl-5 cursor-pointer hover:bg-slate-800/50 p-1.5 rounded transition-colors border border-transparent">
+                        <div class="absolute left-0 top-3 w-2 h-2 ${bulletColor} rounded-full ring-4 ring-[#0f172a]"></div>
+                        <div class="text-[9px] font-bold ${badgeColor} border px-1.5 py-0.2 rounded uppercase tracking-wider mb-1 inline-block">${news.date} • ${news.type}</div>
+                        <h4 class="text-xs font-bold text-white">${news.title}</h4>
+                        <p class="text-[9px] text-slate-400 leading-tight mt-0.5">${news.desc}</p>
+                    </li>
+                `;
+            });
+        }
+
+        // --- HUNTING TARGET ALERTS (REAL LOGIC) ---
+        function setHuntingTarget() {
+            const inputEl = document.getElementById('hunting-price-input');
+            if(!inputEl) return;
+            const val = parseFloat(inputEl.value);
+            if(isNaN(val) || val <= 0) return;
+
+            huntingTargetPrice = val;
+            localStorage.setItem('bc_hunting_target', val.toString());
+
+            const statusEl = document.getElementById('hunting-status');
+            if(statusEl) {
+                statusEl.innerText = `Target aktif: ${formatterIDR.format(val)}`;
+                statusEl.classList.remove('hidden');
+                statusEl.classList.remove('text-slate-400');
+                statusEl.classList.add('text-emerald-400');
+            }
+            alert(`Target harga ${formatterIDR.format(val)} berhasil disimpan! Alarm akan berbunyi saat memindai pasar.`);
+        }
+
+        function checkHuntingTargetAlert(lowestPriceFound, storeName) {
+            if(huntingTargetPrice && lowestPriceFound <= huntingTargetPrice) {
+                showToast(`🚨 ALARM HUNTING: Harga telah menyentuh ${formatterIDR.format(lowestPriceFound)} di ${storeName}! Segera sikat!`, true);
+            }
+        }
+
+        // --- ECOMMERCE SIMULATOR WITH DELAY LOGIC ---
+        async function fetchMarketPrices(deviceId, storage, isNew) {
+            const meta = globalDeviceDB[deviceId];
+            
+            // Calculate delay based on release year
+            const currentYear = 2026;
+            const age = currentYear - meta.releaseYear;
+            let dynamicDelay = 800; // Base delay
+            
+            const alertText = document.getElementById('ecommerce-delay-alert');
+            if (alertText) alertText.classList.add('hidden');
+            
+            // Only 10% chance to trigger massive delay for old phones
+            if (age >= 4 && Math.random() < 0.10) {
+                dynamicDelay += 2500; 
+                if (alertText) alertText.classList.remove('hidden');
+            }
+
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    if (alertText) alertText.classList.add('hidden');
+                    
+                    const multiplier = getStorageMultiplier(storage);
+                    const arraySource = isNew ? meta.historyNew : meta.historyUsed;
+                    const baseIdr = arraySource[arraySource.length-1] * multiplier;
+
+                    // TODO: GANTI DENGAN FETCH API BACKEND LU 
+                    resolve({
+                        tokped: baseIdr - 50000,
+                        shopee: baseIdr - 25000,
+                        blibli: baseIdr + 150000,
+                        eraspace: baseIdr + 300000
+                    });
+                }, dynamicDelay); 
+            });
+        }
+
+        async function scanLiveMarket() {
+            const btn = document.getElementById('btn-scan-market');
+            const grid = document.getElementById('ecommerce-cards-grid');
+            if(!grid || !btn) return;
+            
+            btn.innerHTML = `<svg class="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Memindai...</span>`;
+            btn.disabled = true;
+
+            grid.innerHTML = `
+                <div class="bg-[#050b14] p-4 rounded-xl border border-slate-800 animate-pulse h-24 flex items-center justify-center">
+                    <span class="text-xs font-bold text-slate-500 flex items-center gap-2"><div class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div> Memuat Tokopedia...</span>
+                </div>
+                <div class="bg-[#050b14] p-4 rounded-xl border border-slate-800 animate-pulse h-24 flex items-center justify-center">
+                    <span class="text-xs font-bold text-slate-500 flex items-center gap-2"><div class="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div> Memuat Shopee...</span>
+                </div>
+            `;
+
+            try {
+                const isNew = currentMarketCond === 'new';
+                const liveData = await fetchMarketPrices(activeDevice, currentStorage, isNew);
+                grid.innerHTML = '';
+
+                const listStores = [
+                    { name: 'Tokopedia', icon: 'T', bg: 'bg-emerald-500', val: liveData.tokped, link: `https://www.tokopedia.com/search?q=${globalDeviceDB[activeDevice].name}` },
+                    { name: 'Shopee', icon: 'S', bg: 'bg-orange-500', val: liveData.shopee, link: `https://shopee.co.id/search?keyword=${globalDeviceDB[activeDevice].name}` },
+                    { name: 'Blibli', icon: 'B', bg: 'bg-blue-500', val: liveData.blibli, link: `https://www.blibli.com/jual/${globalDeviceDB[activeDevice].name.replace(' ', '-')}` }
+                ];
+
+                if(isNew) {
+                    listStores.push({ name: 'Eraspace', icon: 'E', bg: 'bg-red-500', val: liveData.eraspace, link: `https://eraspace.com/` });
+                }
+
+                // Sort by cheapest
+                listStores.sort((a,b) => a.val - b.val);
+
+                listStores.forEach((store, idx) => {
+                    const isCheapest = idx === 0;
+                    const borderCls = isCheapest ? 'border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'border-slate-800';
+                    const displayVal = formatterIDR.format(store.val);
+                    const subtitle = 'Stock Indonesia';
+                    
+                    grid.innerHTML += `
+                        <div class="bg-[#050b14] p-4 rounded-xl border ${borderCls} relative transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group" onclick="window.open('${store.link}', '_blank')">
+                            ${isCheapest ? `<div class="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10">TERMURAH</div>` : ''}
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="w-8 h-8 ${store.bg} rounded-lg flex items-center justify-center font-black text-white text-sm">${store.icon}</div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors flex items-center gap-1">${store.name} ➔</p>
+                                    <p class="text-[9px] text-slate-500 leading-none">Local Vendor</p>
+                                </div>
+                            </div>
+                            <p class="text-lg font-black text-white">${displayVal}</p>
+                            <p class="text-[9px] text-slate-400">${subtitle}</p>
+                        </div>
+                    `;
+                });
+
+                if (listStores.length > 0) {
+                    checkHuntingTargetAlert(listStores[0].val, listStores[0].name);
+                }
+
+            } catch (err) {
+                console.error("API Fetch Error", err);
+            } finally {
+                btn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span>Scan Market</span>`;
+                btn.disabled = false;
+            }
+        }
+
+        function setMarketCondition(cond) {
+            currentMarketCond = cond;
+            const btnNew = document.getElementById('btn-cond-new'); 
+            const btnUsed = document.getElementById('btn-cond-used');
+            
+            const activeClass = "px-3 py-1 text-[10px] font-bold rounded-md bg-[#06b6d4] text-slate-900 transition-all shadow-sm";
+            const inactiveClass = "px-3 py-1 text-[10px] font-bold rounded-md text-slate-400 hover:text-white transition-all bg-transparent border border-slate-700";
+            
+            if(cond === 'new') { if(btnNew) { btnNew.className = activeClass; btnUsed.className = inactiveClass; } } 
+            else { if(btnNew) { btnNew.className = inactiveClass; btnUsed.className = "px-3 py-1 text-[10px] font-bold rounded-md bg-indigo-500 text-white transition-all shadow-sm"; } }
+            
+            scanLiveMarket();
+        }
+
+        // --- MATH CALCULATORS ---
+        function calculatePromo(basePrice) {
+            if(!basePrice) return;
+            let final = basePrice;
+            
+            const promoCcEl = document.getElementById('promo-cc');
+            if (promoCcEl && promoCcEl.checked) final -= 500000;
+            
+            const promoCbEl = document.getElementById('promo-cb');
+            if (promoCbEl && promoCbEl.checked) final -= 300000;
+            
+            const promoFinalPriceEl = document.getElementById('promo-final-price');
+            if (promoFinalPriceEl) {
+                promoFinalPriceEl.innerText = formatterIDR.format(final);
+            }
+        }
+
+        // --- MATH CALCULATORS ---
+        function calculateTCO(buyPrice) {
+            if(!buyPrice) return;
+            const sell = buyPrice * 0.45; // Standard 3-year depreciation
+            
+            const tcoBeliEl = document.getElementById('tco-beli');
+            if (tcoBeliEl) tcoBeliEl.innerText = formatterIDR.format(buyPrice);
+            
+            const tcoJualEl = document.getElementById('tco-jual');
+            if (tcoJualEl) tcoJualEl.innerText = formatterIDR.format(sell);
+            
+            const tcoDailyEl = document.getElementById('tco-daily');
+            if (tcoDailyEl) tcoDailyEl.innerText = `${formatterIDR.format((buyPrice - sell) / (3 * 365))} / Hari`;
+        }
+        
+        function calculateTradeIn() {
+            const meta = globalDeviceDB[activeDevice];
+            const multiplier = getStorageMultiplier(currentStorage);
+            const price = Math.round(meta.historyNew[meta.historyNew.length - 1] * multiplier);
+            
+            const tradeinModelEl = document.getElementById('tradein-model');
+            if (!tradeinModelEl) return;
+            const tradeValue = parseFloat(tradeinModelEl.value);
+            
+            const tradeinResultEl = document.getElementById('tradein-result');
+            if (tradeinResultEl) {
+                tradeinResultEl.innerText = formatterIDR.format(Math.max(0, price - tradeValue));
+            }
+        }
+
         // --- PLANNER SAVINGS (BRANKAS) ---
         function loadSavingsData() {
             const savedBal = localStorage.getItem('bc_savings_bal'); 
@@ -1036,9 +1658,9 @@
             const brankasPctEl = document.getElementById('brankas-pct');
             if (brankasPctEl) brankasPctEl.innerText = `${pct.toFixed(1)}% Tercapai`;
             
-            const daysLeft = Math.max(0, Math.ceil((new Date(targetBirthdayDate) - new Date()) / (1000 * 60 * 60 * 24)));
+            const daysLeft = Math.max(0, Math.ceil((new Date(targetBirthdayDate) - new Date()) / (1000 * 60 * 60 * 24 * 30)));
             const brankasSisaWaktuEl = document.getElementById('brankas-sisa-waktu');
-            if (brankasSisaWaktuEl) brankasSisaWaktuEl.innerText = `Sisa: ${daysLeft} Hari`;
+            if (brankasSisaWaktuEl) brankasSisaWaktuEl.innerText = `Sisa: ${daysLeft} Bulan`;
 
             // Sync Home
             const homeSaldoTextEl = document.getElementById('home-saldo-text');
