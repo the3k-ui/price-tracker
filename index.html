@@ -841,16 +841,15 @@
             const savedName = localStorage.getItem('bc_username_app');
             const savedDate = localStorage.getItem('bc_target_date_app');
             const savedDevice = localStorage.getItem('bc_active_device_app');
-            if (savedName && savedDate && savedDevice) {
-                currentUsername = savedName; targetBirthdayDate = savedDate; activeDevice = savedDevice;
-                document.getElementById('display-username-home').innerText = currentUsername;
-                document.getElementById('onboarding-modal').classList.add('hidden');
-                updateHomeDashboard();
-                navigateTo('home');
-            } else {
-                document.getElementById('user-date-input').value = '2027-02-11';
-                document.getElementById('screen-home').classList.add('active'); 
-            }
+            if (savedName) currentUsername = savedName;
+            if (savedDate) targetBirthdayDate = savedDate;
+            if (savedDevice) activeDevice = savedDevice;
+            
+            // Always skip onboarding modal — go straight to dashboard
+            document.getElementById('display-username-home').innerText = currentUsername;
+            document.getElementById('onboarding-modal').classList.add('hidden');
+            updateHomeDashboard();
+            navigateTo('home');
         }
 
         function saveUserProfile() {
