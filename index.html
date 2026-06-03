@@ -545,7 +545,7 @@
         // --- BACKEND API CONFIGURATION (Dynamic for Local Dev & GitHub Pages) ---
         const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:5000'
-            : 'https://buycopilot-backend.onrender.com'; // Ganti dengan URL API Render Anda setelah deploy
+            : 'https://matibebek12-buycopilot-backend.hf.space'; // Ganti dengan URL API Hugging Face Anda setelah deploy
         
         // --- UNIVERSAL STATE ---
         let currentUsername = 'Guest';
@@ -720,11 +720,15 @@
                 resultsBox.innerHTML = '';
                 if(query.length < 2) { resultsBox.classList.remove('active'); return; }
 
-                // 1. Cari kecocokan di database lokal dahulu
+                // 1. Cari kecocokan di database lokal dahulu (multi-word match)
                 let matches = [];
-                const queryClean = query.toLowerCase().replace(/\s+/g, '');
+                const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
                 for(const [code, data] of Object.entries(globalDeviceDB)) {
-                    if(data.tags.some(tag => tag.includes(queryClean)) || data.name.toLowerCase().replace(/\s+/g, '').includes(queryClean)) {
+                    const nameLower = data.name.toLowerCase();
+                    const allTermsMatch = queryTerms.every(term => {
+                        return data.tags.some(tag => tag.includes(term)) || nameLower.includes(term);
+                    });
+                    if(allTermsMatch) {
                         matches.push({ code, data, source: 'local' });
                     }
                 }
