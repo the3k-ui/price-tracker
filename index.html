@@ -476,6 +476,20 @@
     </div>
 
     <script>
+        // Global Error Monitor for UI/UX debugging
+        window.addEventListener('error', function(e) {
+            console.error("Global UI Error:", e.message, "at", e.filename, ":", e.lineno);
+            if (typeof showToast === 'function') {
+                showToast(`Error: ${e.message} (Baris ${e.lineno})`, true);
+            }
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error("Global Promise Rejection:", e.reason);
+            if (typeof showToast === 'function') {
+                showToast(`Promise Error: ${e.reason}`, true);
+            }
+        });
+
         const formatterIDR = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
         
         let currentUsername = 'Guest';
@@ -568,15 +582,23 @@
 
         // --- DIRECT SERVERLESS GSM ARENA SCRAPER WITH CORS FALLBACK ---
         async function fetchWithProxy(targetUrl) {
-            // Coba corsproxy.io terlebih dahulu (kembalian langsung raw text, sangat cepat)
+            // Coba corsproxy.io terlebih dahulu dengan parameter query standard ?url=
             try {
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
                 const res = await fetch(proxyUrl);
                 if (res.ok) {
                     return await res.text();
                 }
             } catch (e) {
-                console.warn("corsproxy.io failed, trying allorigins", e);
+                console.warn("corsproxy.io standard format failed, trying direct suffix", e);
+                try {
+                    // Fallback format langsung: corsproxy.io/https://...
+                    const proxyUrlDirect = `https://corsproxy.io/${targetUrl}`;
+                    const res = await fetch(proxyUrlDirect);
+                    if (res.ok) return await res.text();
+                } catch (e2) {
+                    console.warn("corsproxy.io direct format failed", e2);
+                }
             }
             
             // Fallback ke allorigins.win (kembalian JSON dibungkus field contents)
@@ -594,24 +616,49 @@
                 
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
-                const makers = doc.querySelectorAll('.makers li');
                 
                 const results = [];
-                makers.forEach(maker => {
-                    const img = maker.querySelector('img');
-                    const link = maker.querySelector('a');
-                    if (link && img) {
-                        const name = link.querySelector('span') ? link.querySelector('span').textContent : (link.querySelector('strong') ? link.querySelector('strong').textContent : link.textContent);
-                        const href = link.getAttribute('href').startsWith('http') ? link.getAttribute('href') : 'https://www.gsmarena.com/' + link.getAttribute('href');
+                const makers = doc.querySelectorAll('.makers li');
+                
+                if (makers.length > 0) {
+                    makers.forEach(maker => {
+                        const img = maker.querySelector('img');
+                        const link = maker.querySelector('a');
+                        if (link && img) {
+                            const name = link.querySelector('span') ? link.querySelector('span').textContent : (link.querySelector('strong') ? link.querySelector('strong').textContent : link.textContent);
+                            const href = link.getAttribute('href').startsWith('http') ? link.getAttribute('href') : 'https://www.gsmarena.com/' + link.getAttribute('href');
+                            const brand = name.split(' ')[0] || 'Gadget';
+                            results.push({
+                                name: name.trim(),
+                                brand: brand.trim(),
+                                url: href,
+                                img: img.getAttribute('src') || ''
+                            });
+                        }
+                    });
+                } else {
+                    // Jika halaman dialihkan langsung ke halaman detail spesifikasi (karena pencarian persis 1 hasil)
+                    const specsList = doc.getElementById('specs-list') || doc.querySelector('[data-spec="chipset"]');
+                    if (specsList) {
+                        const nameEl = doc.querySelector('.specs-phone-name-title') || doc.querySelector('h1');
+                        const name = nameEl ? nameEl.textContent.trim() : query;
                         const brand = name.split(' ')[0] || 'Gadget';
+                        
+                        const canonical = doc.querySelector('link[rel="canonical"]');
+                        const href = canonical ? canonical.getAttribute('href') : url;
+                        
+                        const imgEl = doc.querySelector('.specs-photo-main img') || doc.querySelector('meta[property="og:image"]');
+                        const img = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('content') || '') : '';
+                        
                         results.push({
-                            name: name.trim(),
-                            brand: brand.trim(),
+                            name: name,
+                            brand: brand,
                             url: href,
-                            img: img.getAttribute('src') || ''
+                            img: img,
+                            source: 'online'
                         });
                     }
-                });
+                }
                 return results;
             } catch (err) {
                 console.error("Failed searchGSMArena:", err);
@@ -646,12 +693,23 @@
             const buildEl = doc.querySelector('td[data-spec="build"]');
             specs.build = buildEl ? buildEl.textContent.trim() : 'Glass Front, Premium Frame';
             
+            // Ekstraksi Tahun Rilis Lebih Kokoh
             const yearEl = doc.querySelector('span[data-spec="released-hl"]');
             let releaseYear = 2025;
             if (yearEl) {
                 const match = yearEl.textContent.match(/\b(20\d\d)\b/);
-                if (match) {
-                    releaseYear = parseInt(match[1]);
+                if (match) releaseYear = parseInt(match[1]);
+            } else {
+                // Alternatif 1: Announced/Launch Table
+                const launchedEl = doc.querySelector('[data-spec="year"]') || doc.querySelector('[data-spec="released"]');
+                if (launchedEl) {
+                    const match = launchedEl.textContent.match(/\b(20\d\d)\b/);
+                    if (match) releaseYear = parseInt(match[1]);
+                } else {
+                    // Alternatif 2: Regex di seluruh text body
+                    const bodyText = doc.body ? doc.body.textContent : "";
+                    const match = bodyText.match(/Released\s+(20\d\d)/i) || bodyText.match(/Announced\s+(20\d\d)/i);
+                    if (match) releaseYear = parseInt(match[1]);
                 }
             }
             
@@ -720,6 +778,12 @@
             currentUsername = localStorage.getItem('bc_username_app') || 'Developer';
             targetBirthdayDate = localStorage.getItem('bc_target_date_app') || '2027-02-11';
             activeDevice = localStorage.getItem('bc_active_device_app') || 's25u';
+            
+            // Validasi keberadaan activeDevice dalam database lokal
+            if (!globalDeviceDB[activeDevice]) {
+                activeDevice = 's25u';
+                localStorage.setItem('bc_active_device_app', 's25u');
+            }
             
             const nameEl = document.getElementById('display-username-home');
             if(nameEl) nameEl.innerText = currentUsername;
