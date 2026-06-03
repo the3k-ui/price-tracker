@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
@@ -35,6 +36,7 @@
         .glass-panel {
             background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
         }
         
         .screen { display: none; opacity: 0; transition: opacity 0.4s ease-in-out; }
@@ -54,75 +56,45 @@
         .search-item:hover { background: #1e293b; }
         .search-item:last-child { border-bottom: none; }
 
-        /* Toast Animation */
-        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOutDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(20px); opacity: 0; } }
-        .toast-enter { animation: slideInRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .toast-exit { animation: fadeOutDown 0.5s ease forwards; }
+        /* NEON GLOW ANIMATION FOR QUICK ACTIONS */
+        @keyframes targetGlowAnim {
+            0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4), 0 0 40px rgba(6, 182, 212, 0.6) inset; border-color: #06b6d4; transform: scale(1.02); }
+            50% { box-shadow: 0 0 35px 15px rgba(6, 182, 212, 0.25), 0 0 15px rgba(6, 182, 212, 0.3) inset; border-color: #06b6d4; transform: scale(1); }
+            100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0), 0 0 0 rgba(6, 182, 212, 0) inset; border-color: rgba(255, 255, 255, 0.05); transform: scale(1); }
+        }
+        .glow-active {
+            animation: targetGlowAnim 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            z-index: 50; position: relative;
+        }
+
+        /* INTEGRATED GRADIENT TEXT COMPONENT */
+        .animated-gradient-text {
+            background: linear-gradient(to right, #40ffaa, #38bdf8, #c084fc, #38bdf8, #40ffaa);
+            background-size: 300% 100%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            animation: gradient-move 8s ease-in-out infinite alternate;
+            display: inline-block;
+        }
+        @keyframes gradient-move {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
     </style>
 </head>
 <body class="bg-[#050b14] text-slate-300 pb-24 md:pb-12 min-h-screen overflow-x-hidden selection:bg-[#06b6d4] selection:text-white" id="main-body">
 
-    <!-- Active Toast Notification Container -->
-    <div id="toast-container" class="fixed bottom-24 md:bottom-6 right-4 z-[120] flex flex-col gap-3 pointer-events-none"></div>
-
-    <!-- Live Ticker -->
-    <div class="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white text-[10px] font-bold py-1 overflow-hidden whitespace-nowrap fixed top-0 z-[60]">
+    <div class="w-full bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 text-white text-[10px] font-bold py-1 overflow-hidden whitespace-nowrap fixed top-0 z-[60]">
         <div class="inline-block animate-ticker tracking-widest uppercase" id="live-ticker-text">
-            🔥 [SYSTEM ENGINE] Menunggu Integrasi API Backend --- 💰 Data historis ditampilkan menggunakan Master Database Lokal
+            🔥 [LIVE ENGINE] Engine siap diintegrasikan dengan API --- 💰 Menunggu koneksi backend untuk data real-time E-Commerce
         </div>
     </div>
 
-    <!-- Onboarding Modal -->
-    <div id="onboarding-modal" class="fixed inset-0 bg-[#050b14]/95 backdrop-blur-xl z-[100] flex items-center justify-center transition-opacity duration-700">
-        <div class="bg-[#0f172a] p-8 rounded-3xl border border-slate-700 shadow-[0_0_50px_rgba(6,182,212,0.15)] max-w-sm w-full mx-4 relative overflow-hidden">
-            <div class="absolute -top-20 -right-20 w-40 h-40 bg-[#06b6d4]/20 rounded-full blur-3xl"></div>
-            <div class="w-16 h-16 bg-gradient-to-br from-[#06b6d4] to-[#6366f1] rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-cyan-500/20 relative z-10">
-                <span class="text-3xl">🚀</span>
-            </div>
-            <h2 class="text-3xl font-black text-white mb-1 relative z-10 tracking-tight">BuyCopilot</h2>
-            <p class="text-xs text-slate-400 mb-6 relative z-10">Smart Market Price Tracker</p>
-            
-            <div class="space-y-4 relative z-10">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Siapa Namamu?</label>
-                    <input type="text" id="user-name-input" placeholder="Misal: Kevin" class="w-full bg-[#050b14] border border-slate-700 rounded-xl p-3 text-white font-medium text-sm focus:outline-none focus:border-[#06b6d4] transition-all" autocomplete="off">
-                </div>
+    <!-- Active Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-4 z-[120] flex flex-col gap-3 pointer-events-none"></div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Target Waktu Beli (Ultah/Gajian)</label>
-                    <input type="date" id="user-date-input" class="w-full bg-[#050b14] border border-slate-700 rounded-xl p-3 text-white font-medium text-sm focus:outline-none focus:border-[#06b6d4] transition-all">
-                </div>
-
-                <div class="relative">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cari Gadget (Autocorrect Aktif)</label>
-                    <input type="text" id="device-search-onboard" placeholder="Ketik: s25 ultra, iphone 16..." class="w-full bg-[#050b14] border border-slate-700 rounded-xl p-3 text-white font-medium text-sm focus:outline-none focus:border-[#06b6d4] transition-all" autocomplete="off">
-                    <div id="onboard-search-results" class="search-results hide-scroll"></div>
-                    <input type="hidden" id="selected-device-code" value="s25u">
-                </div>
-
-                <button onclick="saveUserProfile()" class="w-full bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] hover:from-[#0891b2] text-slate-900 font-extrabold py-3.5 rounded-xl shadow-lg transform transition-all active:scale-95 flex justify-center items-center gap-2 text-sm mt-4">
-                    Mulai Track Sekarang <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notification Drawer -->
-    <div id="notification-overlay" class="fixed inset-0 bg-[#050b14]/60 backdrop-blur-sm z-[80] hidden transition-opacity" onclick="toggleNotifications()"></div>
-    <div id="notification-drawer" class="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-[#0f172a] border-l border-slate-800 shadow-2xl z-[85] transform translate-x-full transition-transform duration-300 flex flex-col pt-6">
-        <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-[#050b14]">
-            <div><h3 class="text-white font-bold text-lg">🔔 Inbox Monitor</h3><p class="text-xs text-slate-400 font-medium">Informasi global ancaman harga</p></div>
-            <button onclick="toggleNotifications()" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white transition-all">✕</button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-4 space-y-3" id="notification-list">
-            <!-- Dynamic notifications -->
-        </div>
-    </div>
-
-    <!-- ==================== SCREEN 1: HOME ==================== -->
     <div id="screen-home" class="screen pt-12 p-4 md:p-8 max-w-[800px] mx-auto min-h-screen">
-        
         <!-- App Header -->
         <div class="flex justify-between items-center mb-8 pt-4">
             <div class="flex items-center gap-4">
@@ -137,10 +109,6 @@
                     </div>
                 </div>
             </div>
-            <button class="w-12 h-12 bg-[#1e293b] border border-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all relative" onclick="toggleNotifications()">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                <div class="absolute top-3 right-3 w-2.5 h-2.5 bg-cyan-500 rounded-full animate-ping"></div>
-            </button>
         </div>
 
         <!-- Global Search Bar (Home) -->
@@ -148,15 +116,15 @@
             <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <input type="text" id="device-search-home" placeholder="Ganti HP (Ketik: iPhone 16, S25 Ultra... Batas: 2020)" class="w-full bg-[#131b2f] border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-white font-medium text-sm focus:outline-none focus:border-cyan-500 transition-all shadow-lg" autocomplete="off">
+            <input type="text" id="device-search-home" placeholder="Ganti HP (Ketik: iPhone 12, S21 Ultra... Batas: 2020)" class="w-full bg-[#131b2f] border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-white font-medium text-sm focus:outline-none focus:border-cyan-500 transition-all shadow-lg" autocomplete="off">
             <div id="home-search-results" class="search-results hide-scroll w-full"></div>
         </div>
 
         <!-- Hero Card: Target Savings & Goal -->
-        <div class="glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6 cursor-pointer transform transition-transform hover:scale-[1.02]" onclick="navigateTo('dashboard', 'planner-section')">
+        <div class="glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6 cursor-pointer transform transition-transform hover:scale-[1.02]" onclick="navigateTo('dashboard', 'card-brankas')">
             <div class="absolute -right-10 -top-10 w-40 h-40 bg-[#06b6d4]/15 rounded-full blur-3xl"></div>
             <div class="flex justify-between items-start mb-2 relative z-10">
-                <div class="bg-cyan-500/20 text-[#06b6d4] border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 bg-cyan-500/20 text-[#06b6d4] border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase">
                     <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></div> Target Beli: <span id="home-target-date-display">...</span>
                 </div>
                 <div class="text-white text-xs font-bold bg-[#1e293b] border border-slate-700 px-2.5 py-1 rounded-lg max-w-[120px] truncate text-center" id="home-device-model">Target Device</div>
@@ -164,7 +132,7 @@
             
             <h3 class="text-slate-400 text-xs font-bold uppercase mt-4 mb-1">Total Tabungan Brankas</h3>
             <div class="flex items-end gap-2 mb-4 relative z-10">
-                <h1 class="text-4xl font-black text-white" id="home-saldo-text">Rp 0</h1>
+                <h1 class="text-4xl font-black text-white animated-gradient-text" id="home-saldo-text">Rp 0</h1>
                 <p class="text-sm text-slate-500 font-bold mb-1">/ <span id="home-target-text">...</span></p>
             </div>
 
@@ -178,65 +146,64 @@
         </div>
 
         <!-- System Source Info -->
-        <div class="bg-gradient-to-r from-slate-900/40 to-slate-800/40 border border-slate-700/50 rounded-2xl p-4 flex items-center justify-between mb-8">
+        <div class="bg-gradient-to-r from-emerald-900/40 to-slate-800/40 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between mb-8">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-slate-800 rounded-full flex items-center justify-center text-slate-400 text-xs font-black">
+                <div class="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-black">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
                 <div>
                     <p class="text-[10px] text-slate-400 font-bold uppercase">Data Source Engine</p>
-                    <p class="text-xs font-black text-white">Local IDR Master Database</p>
+                    <p class="text-xs font-black text-white">Local IDR Web Scraper & Sheets API</p>
                 </div>
             </div>
-            <div class="text-slate-400 text-[10px] font-bold">API Ready</div>
+            <div class="text-emerald-400 text-[10px] font-bold">API Ready</div>
         </div>
 
         <!-- App Grid Menu -->
         <h2 class="text-xs font-black text-white mb-4 px-2 uppercase tracking-widest">Eksplorasi Pasar & Tools</h2>
         <div class="grid grid-cols-2 gap-4">
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-cyan-500/50" onclick="navigateTo('dashboard', 'hero-section')">
+            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-cyan-500/50" onclick="navigateTo('dashboard', 'card-specs')">
                 <div class="w-10 h-10 bg-[#3b82f6]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#3b82f6]">📱</div>
                 <div>
                     <h3 class="text-white font-bold text-sm">Spesifikasi</h3>
-                    <p class="text-[10px] text-slate-400">Info Detail & Info Harga</p>
+                    <p class="text-[10px] text-slate-400">Info Detail & Harga</p>
                 </div>
             </div>
             
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-purple-500/50" onclick="navigateTo('dashboard', 'charts-section')">
+            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-purple-500/50" onclick="navigateTo('dashboard', 'card-history')">
                 <div class="w-10 h-10 bg-[#8b5cf6]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#8b5cf6]">📈</div>
                 <div>
-                    <h3 class="text-white font-bold text-sm">Grafik & Drops</h3>
-                    <p class="text-[10px] text-slate-400">Riwayat Penurunan Pasar</p>
+                    <h3 class="text-white font-bold text-sm">Grafik Historis</h3>
+                    <p class="text-[10px] text-slate-400">Pola Fluktuasi Pasar</p>
                 </div>
             </div>
 
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-emerald-500/50" onclick="navigateTo('dashboard', 'ecommerce-section')">
+            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-emerald-500/50" onclick="navigateTo('dashboard', 'card-ecommerce')">
                 <div class="w-10 h-10 bg-[#10b981]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#10b981]">🛒</div>
                 <div>
-                    <h3 class="text-white font-bold text-sm">Live Hunting</h3>
-                    <p class="text-[10px] text-slate-400">Set Target & Alert E-Commerce</p>
+                    <h3 class="text-white font-bold text-sm">Live E-Commerce</h3>
+                    <p class="text-[10px] text-slate-400">Tokped, Shopee, dll</p>
                 </div>
             </div>
 
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-rose-500/50" onclick="navigateTo('dashboard', 'tools-section')">
+            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-rose-500/50" onclick="navigateTo('dashboard', 'card-tco')">
                 <div class="w-10 h-10 bg-[#f43f5e]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#f43f5e]">💸</div>
                 <div>
-                    <h3 class="text-white font-bold text-sm">TCO & Pajak</h3>
-                    <p class="text-[10px] text-slate-400">Hitung Biaya Harian</p>
+                    <h3 class="text-white font-bold text-sm">TCO & Tukar Tambah</h3>
+                    <p class="text-[10px] text-slate-400">Hitung Biaya Pemakaian</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ==================== SCREEN 2: MAIN DASHBOARD ==================== -->
     <div id="screen-dashboard" class="screen p-4 md:p-8 max-w-[1400px] mx-auto pt-12 md:pt-16">
         
-        <!-- Header (Dashboard Navigation) -->
+        <!-- Header -->
         <div class="mb-6 flex justify-between items-center glass-panel p-4 rounded-3xl shadow-xl relative overflow-hidden" id="hero-section">
             <div class="absolute top-0 right-1/4 w-32 h-32 bg-[#06b6d4]/10 rounded-full blur-3xl"></div>
             <div class="flex items-center gap-4 relative z-10">
-                <button onclick="navigateTo('home')" class="w-10 h-10 bg-[#050b14] rounded-full flex items-center justify-center text-slate-400 hover:text-white transition shadow-inner">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                <button onclick="navigateTo('home')" class="w-10 h-10 bg-[#050b14] rounded-full flex items-center justify-center text-slate-400 hover:text-white transition shadow-inner cursor-pointer z-50">
+                    <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <div>
                     <p class="text-[9px] text-[#06b6d4] font-extrabold uppercase tracking-widest flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> Tracking Aktif</p>
@@ -244,7 +211,7 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 bg-[#050b14]/80 p-1.5 rounded-xl border border-slate-800 relative z-10" id="storage-tabs-container">
+            <div class="flex items-center gap-2 bg-[#050b14]/80 p-1.5 rounded-xl border border-slate-800 relative z-10">
                 <button onclick="setStorage('Base')" id="tab-Base" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#06b6d4] text-slate-900 transition-all">Base</button>
                 <button onclick="setStorage('Mid')" id="tab-Mid" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all">Mid</button>
                 <button onclick="setStorage('Max')" id="tab-Max" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all hidden sm:block">Max</button>
@@ -253,28 +220,23 @@
 
         <!-- Specs & Price Overview -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="lg:col-span-2 glass-panel rounded-3xl p-5 shadow-xl relative flex flex-col min-h-[300px]">
-                <div class="absolute top-4 left-4 z-10">
-                    <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2" id="brand-badge-3d">
-                        Brand
-                    </span>
+            <div id="card-specs" class="lg:col-span-2 glass-panel rounded-3xl p-5 shadow-xl relative flex flex-col min-h-[300px]">
+                <div class="absolute top-5 left-5 z-10">
+                    <span class="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2" id="brand-badge-3d">Brand</span>
                 </div>
                 
-                <h3 class="text-center text-sm font-bold text-white mt-6 mb-4">Informasi Spesifikasi Detail <span id="lbl-release-year" class="ml-2 text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-normal">Dirilis 2025</span></h3>
+                <h3 class="text-center text-sm font-bold text-white mt-8 mb-4">Informasi Spesifikasi Detail <span id="lbl-release-year" class="ml-2 text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-normal">Dirilis 2025</span></h3>
                 
-                <!-- Detailed Specs List (Replaced 3D) -->
-                <div class="flex-1 bg-[#050b14]/50 rounded-2xl border border-slate-800 p-4 overflow-y-auto max-h-[220px] hide-scroll relative z-10">
-                    <ul class="space-y-4 text-sm" id="detailed-specs-list">
-                        <!-- Populated by JS -->
-                    </ul>
+                <div class="flex-1 bg-[#050b14]/50 rounded-2xl border border-slate-800 p-4 overflow-y-auto max-h-[200px] hide-scroll relative z-10">
+                    <ul class="space-y-4 text-sm" id="detailed-specs-list"></ul>
                 </div>
             </div>
 
             <!-- Price Summary Widget -->
-            <div class="glass-panel rounded-3xl p-6 shadow-xl flex flex-col justify-center relative">
+            <div id="card-price-summary" class="glass-panel rounded-3xl p-6 shadow-xl flex flex-col justify-center relative">
                 <div class="absolute -right-5 -top-5 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl"></div>
                 <h2 class="text-xl font-black text-white mb-1">Harga Pasaran Saat Ini</h2>
-                <p class="text-xs text-slate-400 mb-4">Sumber: Database Master & API.</p>
+                <p class="text-xs text-slate-400 mb-6">Sumber: Analisis rata-rata E-Commerce Lokal.</p>
                 
                 <div class="bg-[#050b14] p-5 rounded-2xl border border-slate-800 mb-4 text-center relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 transform -translate-x-full group-hover:animate-[ticker_1.5s_ease-in-out]"></div>
@@ -283,32 +245,15 @@
                     <p class="text-[10px] text-emerald-400 mt-1 font-bold"><span id="storage-multiplier-info">Varian Base</span></p>
                 </div>
                 
-                <!-- Data Conclusion / Recommendation -->
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-bold text-white tracking-wide">Data Conclusion:</h3>
-                    </div>
-                    <div class="relative w-full h-8 flex items-center mb-2">
-                        <div class="w-full h-2 bg-gradient-to-r from-[#f87171] via-[#fbbf24] to-[#10b981] rounded-full relative shadow-inner">
-                            <div id="buy-indicator" class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-slate-900 rounded-full shadow-lg transition-all duration-700" style="left: 50%;"></div>
-                        </div>
-                    </div>
-                    <p class="text-sm font-bold text-center p-2 rounded-lg border border-slate-800 text-white" id="buy-analysis-text">Menghitung...</p>
-                </div>
-
-                <!-- Price Stats Grid (Lowest, Avg, Highest) -->
-                <div class="grid grid-cols-3 gap-2 mt-auto text-center border-t border-slate-800 pt-4">
-                    <div><p class="text-[9px] text-slate-500 uppercase font-bold">Lowest</p><p class="text-xs font-bold text-[#06b6d4]" id="stat-low">-</p></div>
-                    <div class="border-l border-r border-slate-700"><p class="text-[9px] text-slate-500 uppercase font-bold">Average</p><p class="text-xs font-bold text-amber-400" id="stat-avg">-</p></div>
-                    <div><p class="text-[9px] text-slate-500 uppercase font-bold">Highest</p><p class="text-xs font-bold text-rose-400" id="stat-high">-</p></div>
+                <div>
+                    <h3 class="text-xs font-bold text-white mb-3 tracking-wide">Data Conclusion:</h3>
+                    <p class="text-base font-bold text-center p-3 rounded-lg border border-slate-800" id="buy-analysis-text">Menghitung...</p>
                 </div>
             </div>
         </div>
 
-        <!-- Charts Section -->
         <div id="charts-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 pt-4">
-            
-            <div class="glass-panel rounded-3xl p-5 shadow-xl relative flex flex-col h-[320px] lg:col-span-1 order-2 lg:order-1">
+            <div id="card-news" class="glass-panel rounded-3xl p-5 shadow-xl relative flex flex-col h-[320px] lg:col-span-1 order-2 lg:order-1">
                 <div class="flex justify-between items-center mb-3">
                     <h2 class="text-sm font-black text-white flex items-center gap-2">📰 Market News (API)</h2>
                     <span class="flex h-2 w-2 relative">
@@ -318,14 +263,12 @@
                 </div>
                 <div class="flex-1 overflow-y-auto hide-scroll relative" id="news-feed-container">
                     <div class="absolute left-2 top-2 bottom-0 w-px bg-slate-700 z-0"></div>
-                    <ul class="space-y-3 relative z-10" id="news-list">
-                        <!-- Populated by JS -->
-                    </ul>
+                    <ul class="space-y-3 relative z-10" id="news-list"></ul>
                 </div>
             </div>
 
             <!-- History Chart -->
-            <div class="glass-panel rounded-3xl p-6 shadow-xl relative lg:col-span-2 h-[320px] flex flex-col order-1 lg:order-2">
+            <div id="card-history" class="glass-panel rounded-3xl p-6 shadow-xl relative lg:col-span-2 h-[320px] flex flex-col order-1 lg:order-2">
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="text-sm font-black text-white flex items-center gap-2">📈 Riwayat Harga Fluktuatif (IDR)</h2>
                     <div class="flex gap-4 text-xs font-medium">
@@ -339,27 +282,24 @@
 
         <!-- RECENT PRICE DROPS SECTION -->
         <div class="glass-panel rounded-3xl shadow-xl p-6 mb-8">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">📉 Riwayat Penurunan Signifikan (>2%)</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="drops-grid">
-                <!-- Populated by JS -->
-            </div>
+            <h2 class="text-lg font-bold text-white mb-4">📉 Riwayat Penurunan Signifikan (>2%)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="drops-grid"></div>
         </div>
 
         <!-- Predictor Chart -->
-        <div class="glass-panel rounded-3xl p-6 shadow-xl relative mb-8">
+        <div id="card-predictor" class="glass-panel rounded-3xl p-6 shadow-xl relative mb-8">
             <div class="flex justify-between items-start mb-4">
-                <h2 class="text-base font-black text-white flex items-center gap-2">🔮 Prediksi AI ke Tanggal Target</h2>
+                <h2 class="text-base font-black text-white flex items-center gap-2">🔮 Prediksi Matematis ke Tanggal Target</h2>
                 <span class="text-[10px] bg-indigo-900 text-indigo-300 border border-indigo-500 px-3 py-1 rounded font-bold">Math Projection Engine</span>
             </div>
             <p class="text-[10px] text-slate-400 mb-3" id="predictor-explanation-text">
-                Menganalisis pola depresiasi global dan sentimen rilis mendatang dari titik data saat ini...
+                Menganalisis pola depresiasi perangkat ini dan melanjutkan trayektori garis waktu dari titik sekarang...
             </p>
             <div class="relative h-[250px] w-full"><canvas id="predictChart"></canvas></div>
         </div>
 
-        <!-- Radars & E-commerce (Now with Hunting Target) -->
         <div id="ecommerce-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 pt-4">
-            <div class="glass-panel rounded-3xl p-6 shadow-xl relative col-span-1 lg:col-span-2">
+            <div id="card-ecommerce" class="glass-panel rounded-3xl p-6 shadow-xl relative col-span-1 lg:col-span-2">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-base font-black text-white flex items-center gap-2">🛒 E-Commerce Radar</h2>
                     <div class="flex items-center gap-3">
@@ -379,13 +319,15 @@
                     <button onclick="setMarketCondition('used')" id="btn-cond-used-mob" class="flex-1 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all bg-transparent">Second</button>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="ecommerce-cards-grid">
-                    <!-- Cards populated dynamically based on brand and logic -->
-                </div>
+                <p id="ecommerce-delay-alert" class="text-xs text-amber-500 mb-4 hidden animate-pulse">
+                    ⚠️ Data tracker tidak stabil/susah ditemukan untuk perangkat rilis lama. Membutuhkan waktu memindai...
+                </p>
 
-                <!-- NEW: Target Hunting Feature -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="ecommerce-cards-grid"></div>
+
+                <!-- Target Hunting Feature -->
                 <div class="mt-6 bg-slate-800/40 p-4 rounded-xl border border-slate-700">
-                    <h3 class="text-xs font-bold text-white mb-2 flex items-center gap-2">🎯 Fitur Hunting Harga (Auto-Alert)</h3>
+                    <h3 class="text-xs font-bold text-white mb-2 flex items-center gap-2">🎯 Fitur Hunting Harga (Auto-Alert API)</h3>
                     <p class="text-[10px] text-slate-400 mb-3">Sistem akan memberi notifikasi nyata jika harga hasil Scan Market menyentuh atau berada di bawah target Anda.</p>
                     <div class="flex gap-2">
                         <input type="number" id="hunting-price-input" placeholder="Set target harga (Misal: 13900000)" class="flex-1 bg-[#050b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#06b6d4]">
@@ -393,10 +335,9 @@
                     </div>
                     <p id="hunting-status" class="text-[10px] font-bold text-emerald-400 mt-2 hidden">Target aktif: Rp ...</p>
                 </div>
-
             </div>
 
-            <!-- Promotion stack & offline prices -->
+            <!-- Promotion stack -->
             <div class="flex flex-col gap-6">
                 <div class="glass-panel rounded-3xl p-6 shadow-xl">
                     <h2 class="text-base font-black text-white mb-3">🎟️ Voucher Stacker Lokal</h2>
@@ -418,22 +359,20 @@
             </div>
         </div>
 
-        <!-- Savings Planner & TCO -->
         <div id="planner-section" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 pt-4">
             <!-- Universal Brankas Tracker -->
-            <div class="glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden">
+            <div id="card-brankas" class="glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-[#06b6d4]"></div>
                 <h2 class="text-2xl font-black text-white flex items-center gap-2 mb-1">🏦 Brankas Impian</h2>
-                <p class="text-xs text-slate-400 mb-6">Target Pembelian: <span class="text-white font-bold" id="brankas-target-date">...</span></p>
-                
-                <!-- High Risk Alert from News Logic -->
+                <p class="text-xs text-slate-400 mb-4">Target Pembelian: <span class="text-white font-bold" id="brankas-target-date">...</span></p>
+
                 <div id="brankas-inflation-alert" class="hidden mb-4 bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg flex gap-3 items-start">
                     <span class="text-rose-400 mt-0.5">⚠️</span>
                     <p class="text-[10px] text-rose-300 font-medium leading-tight">
-                        <span class="font-bold">Peringatan:</span> Harga target perangkat mungkin mengalami inflasi ~10% akibat krisis komponen global saat target tanggal Anda tiba.
+                        <span class="font-bold">Peringatan API:</span> Harga target perangkat mungkin mengalami inflasi ~10% akibat krisis komponen global saat target tanggal Anda tiba.
                     </p>
                 </div>
-
+                
                 <div class="bg-[#050b14] p-5 rounded-2xl border border-slate-800 mb-6">
                     <div class="flex justify-between items-end mb-4">
                         <div><p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Saldo Tersimpan</p><h3 class="text-3xl font-black text-emerald-400" id="brankas-saldo">Rp 0</h3></div>
@@ -447,7 +386,6 @@
                     </div>
                 </div>
 
-                <!-- Savings Planner Calculator -->
                 <div class="bg-[#131b2f] p-4 rounded-2xl border border-slate-800 mb-6">
                     <h3 class="text-xs font-bold text-[#06b6d4] uppercase mb-3">Planner & Hitungan Nabung</h3>
                     <div class="grid grid-cols-2 gap-4 text-xs mb-3">
@@ -472,7 +410,6 @@
                     </p>
                 </div>
 
-                <!-- Setor Manual -->
                 <div class="flex gap-3 mb-4" id="deposit-container">
                     <input type="number" id="deposit-input" placeholder="Setor manual (Misal: 8000)" class="flex-1 bg-[#050b14] border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-emerald-500 transition-all">
                     <button onclick="processDeposit()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black px-4 py-3 rounded-xl transition-transform active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.4)]">SETOR</button>
@@ -483,7 +420,7 @@
             <!-- TCO & Trade-in -->
             <div class="flex flex-col gap-6" id="tools-section">
                 <!-- TCO Card -->
-                <div class="glass-panel rounded-3xl p-6 shadow-xl">
+                <div id="card-tco" class="glass-panel rounded-3xl p-6 shadow-xl">
                     <h2 class="text-base font-black text-white mb-2">📅 Total Cost of Ownership (TCO) Calculator</h2>
                     <p class="text-xs text-slate-400 mb-4">Menghitung depresiasi riil harian perangkat berdasarkan durasi pakai Anda (Asumsi 3 Tahun).</p>
                     <div class="bg-[#050b14] p-4 rounded-xl border border-slate-700 flex justify-between items-center">
@@ -498,7 +435,6 @@
                     </div>
                 </div>
                 
-                <!-- Trade In Card -->
                 <div class="glass-panel rounded-3xl p-6 shadow-xl">
                     <h2 class="text-base font-black text-white mb-3">🔄 Smart Trade-In Estimator</h2>
                     <div class="flex gap-2 mb-3">
@@ -522,18 +458,18 @@
     <!-- Bottom Mobile Navigation Bar -->
     <div class="fixed bottom-0 left-0 right-0 bg-[#050b14]/95 border-t border-slate-800 pb-safe md:hidden z-[90] flex justify-around px-2 py-3 backdrop-blur-xl">
         <button onclick="navigateTo('home')" class="flex flex-col items-center text-[#06b6d4]">
-            <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 0h6"></path></svg>
             <span class="text-[9px] font-bold">Home</span>
         </button>
-        <button onclick="navigateTo('dashboard', 'charts-section')" class="flex flex-col items-center text-slate-500 hover:text-white transition">
+        <button onclick="navigateTo('dashboard', 'card-history')" class="flex flex-col items-center text-slate-500 hover:text-white transition">
             <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
             <span class="text-[9px] font-bold">Grafik</span>
         </button>
-        <button onclick="navigateTo('dashboard', 'ecommerce-section')" class="flex flex-col items-center text-slate-500 hover:text-white transition">
+        <button onclick="navigateTo('dashboard', 'card-ecommerce')" class="flex flex-col items-center text-slate-500 hover:text-white transition">
             <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
             <span class="text-[9px] font-bold">Pasar</span>
         </button>
-        <button onclick="navigateTo('dashboard', 'planner-section')" class="flex flex-col items-center text-slate-500 hover:text-white transition">
+        <button onclick="navigateTo('dashboard', 'card-brankas')" class="flex flex-col items-center text-slate-500 hover:text-white transition">
             <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[9px] font-bold">Brankas</span>
         </button>
@@ -542,114 +478,131 @@
     <script>
         const formatterIDR = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
         
-        // --- BACKEND API CONFIGURATION (Dynamic for Local Dev & GitHub Pages) ---
-        const BACKEND_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:5000'
-            : 'https://matibebek12-buycopilot-backend.hf.space'; // Ganti dengan URL API Hugging Face Anda setelah deploy
-        
-        // --- UNIVERSAL STATE ---
         let currentUsername = 'Guest';
         let targetBirthdayDate = '2027-02-11';
         let activeDevice = 's25u'; 
-        let currentStorage = 'Base'; // Base, Mid, Max
+        let currentStorage = 'Base'; 
         let currentMarketCond = 'new';
         let isDashboardInit = false;
         
         let savingsBalance = 0;
         let savingsHistory = [];
-        let huntingTargetPrice = null; // New Hunting Variable
+        let huntingTargetPrice = null;
 
-        // --- GRAPHIC ENGINE INSTANCES ---
         let mainChartInstance = null;
         let predictChartInstance = null;
-        let currentLabels = [];
+        let currentLabels = []; 
+        
+        const getStorageMultiplier = (storage) => storage === 'Mid' ? 1.12 : (storage === 'Max' ? 1.25 : 1);
 
-        // --- MASTER UNIVERSAL DATABASE (Pure IDR Base) ---
+        // --- MASTER UNIVERSAL DATABASE (2020-2025) ---
+        // Panjang array mutlak harus 18 elemen untuk memfasilitasi 18 rentang waktu yang di generate dinamis
         const globalDeviceDB = {
             's25u': {
                 tags: ['samsung', 'samsul', 'galaxy', 's25', 'ultra', 'android'], releaseYear: 2025,
                 brand: 'Samsung', name: 'Galaxy S25 Ultra', storageVariants: ['256GB', '512GB', '1TB'],
                 specs: { chip: 'Snapdragon 8 Elite', screen: '6.8" Flat AMOLED, 120Hz', cam: '200MP Main + 50MP UW + 50MP Tele', battery: '5000 mAh', os: 'One UI 7 (Android 15)', build: 'Titanium Frame' },
-                pricing: {
-                    // Murni IDR Database berdasarkan riwayat 18 poin (Jan 25 - Jun 26)
-                    'Base': {
-                        historyNew: [23999000, 23500000, 23000000, 23100000, 22500000, 22000000, 22200000, 21800000, 21500000, 21000000, 20800000, 20500000, 20000000, 19800000, 19500000, 19600000, 19300000, 19000000],
-                        historyUsed: [null, 21500000, 21000000, 20800000, 20200000, 19800000, 19500000, 19000000, 18800000, 18500000, 18200000, 18000000, 17500000, 17200000, 16800000, 16900000, 16500000, 13900000],
-                        decayFactor: 0.985
-                    }
-                }
+                historyNew: [23999000, 23500000, 23000000, 23100000, 22500000, 22000000, 22200000, 21800000, 21500000, 21000000, 20800000, 20500000, 20000000, 19800000, 19500000, 19600000, 19300000, 19000000],
+                historyUsed: [null, 21500000, 21000000, 20800000, 20200000, 19800000, 19500000, 19000000, 18800000, 18500000, 18200000, 18000000, 17500000, 17200000, 16800000, 16900000, 16500000, 13900000],
+                decayFactor: 0.985
             },
             's24u': {
                 tags: ['samsung', 'samsul', 'galaxy', 's24', 'ultra', 'android'], releaseYear: 2024,
                 brand: 'Samsung', name: 'Galaxy S24 Ultra', storageVariants: ['256GB', '512GB', '1TB'],
                 specs: { chip: 'Snapdragon 8 Gen 3', screen: '6.8" Flat AMOLED, 120Hz', cam: '200MP Quad Camera', battery: '5000 mAh', os: 'One UI 6.1 (Android 14)', build: 'Titanium Frame' },
-                pricing: {
-                    'Base': {
-                        historyNew: [21999000, 21500000, 21000000, 20500000, 20000000, 19800000, 19500000, 19200000, 19000000, 18800000, 18500000, 18200000, 17500000, 17200000, 17000000, 16800000, 16500000, 16000000],
-                        historyUsed: [null, 18500000, 18000000, 17500000, 17200000, 16800000, 16500000, 16200000, 16000000, 15800000, 15500000, 15200000, 14500000, 14200000, 14000000, 13800000, 13500000, 13000000],
-                        decayFactor: 0.988
-                    }
-                }
+                historyNew: [21999000, 21500000, 21000000, 20500000, 20000000, 19800000, 19500000, 19200000, 19000000, 18800000, 18500000, 18200000, 17500000, 17200000, 17000000, 16800000, 16500000, 16000000],
+                historyUsed: [null, 18500000, 18000000, 17500000, 17200000, 16800000, 16500000, 16200000, 16000000, 15800000, 15500000, 15200000, 14500000, 14200000, 14000000, 13800000, 13500000, 13000000],
+                decayFactor: 0.988 
+            },
+            's23u': {
+                tags: ['samsung', 'samsul', 'galaxy', 's23', 'ultra', 'android'], releaseYear: 2023,
+                brand: 'Samsung', name: 'Galaxy S23 Ultra', storageVariants: ['256GB', '512GB', '1TB'],
+                specs: { chip: 'Snapdragon 8 Gen 2', screen: '6.8" Edge AMOLED, 120Hz', cam: '200MP Quad Camera', battery: '5000 mAh', os: 'Android 13', build: 'Aluminum Frame' },
+                historyNew: [19999000, 19500000, 19000000, 18500000, 18000000, 17800000, 17500000, 17200000, 17000000, 16500000, 16000000, 15500000, 15000000, 14800000, 14500000, 14200000, 14000000, 13500000],
+                historyUsed: [null, 16500000, 16000000, 15500000, 15000000, 14800000, 14500000, 14200000, 14000000, 13500000, 13000000, 12500000, 12000000, 11800000, 11500000, 11200000, 11000000, 10500000],
+                decayFactor: 0.988 
+            },
+            's21u': {
+                tags: ['samsung', 'samsul', 'galaxy', 's21', 'ultra', 'android', 'jadul'], releaseYear: 2021,
+                brand: 'Samsung', name: 'Galaxy S21 Ultra', storageVariants: ['128GB', '256GB', '512GB'],
+                specs: { chip: 'Exynos 2100', screen: '6.8" Edge AMOLED, 120Hz', cam: '108MP Quad Camera', battery: '5000 mAh', os: 'Android 11 (Upgraded)', build: 'Aluminum Frame' },
+                historyNew: [18999000, 18000000, 17500000, 16500000, 15500000, 14500000, 13500000, 12500000, 11500000, 10500000, 9500000, 9000000, 8500000, 8000000, 7500000, 7000000, 6800000, 6500000],
+                historyUsed: [null, 15000000, 14000000, 13000000, 12000000, 11000000, 10000000, 9000000, 8000000, 7500000, 7000000, 6500000, 6000000, 5500000, 5000000, 4800000, 4500000, 4200000],
+                decayFactor: 0.990 
             },
             'ip16pm': {
                 tags: ['apple', 'ipon', 'iphone', '16', 'pro', 'max', 'ios'], releaseYear: 2024,
                 brand: 'Apple', name: 'iPhone 16 Pro Max', storageVariants: ['256GB', '512GB', '1TB'],
-                specs: { chip: 'A18 Pro Bionic', screen: '6.9" Super Retina', cam: '48MP Triple', battery: '~4676 mAh', os: 'iOS 18', build: 'Grade 5 Titanium' },
-                pricing: {
-                    'Base': {
-                        historyNew: [25499000, 25200000, 25000000, 24800000, 24500000, 24200000, 24000000, 23800000, 23500000, 23200000, 23000000, 22800000, 22500000, 22200000, 22000000, 21800000, 21500000, 21200000],
-                        historyUsed: [null, 23500000, 23200000, 23000000, 22800000, 22500000, 22200000, 22000000, 21800000, 21500000, 21200000, 21000000, 20500000, 20200000, 20000000, 19800000, 19500000, 19200000],
-                        decayFactor: 0.995 
-                    }
-                }
+                specs: { chip: 'A18 Pro Bionic', screen: '6.9" Super Retina XDR OLED', cam: '48MP Triple', battery: '~4676 mAh', os: 'iOS 18', build: 'Grade 5 Titanium' },
+                historyNew: [25499000, 25200000, 25000000, 24800000, 24500000, 24200000, 24000000, 23800000, 23500000, 23200000, 23000000, 22800000, 22500000, 22200000, 22000000, 21800000, 21500000, 21200000],
+                historyUsed: [null, 23500000, 23200000, 23000000, 22800000, 22500000, 22200000, 22000000, 21800000, 21500000, 21200000, 21000000, 20500000, 20200000, 20000000, 19800000, 19500000, 19200000],
+                decayFactor: 0.992
+            },
+            'ip12pm': {
+                tags: ['apple', 'ipon', 'iphone', '12', 'pro', 'max', 'ios', 'jadul'], releaseYear: 2020,
+                brand: 'Apple', name: 'iPhone 12 Pro Max', storageVariants: ['128GB', '256GB', '512GB'],
+                specs: { chip: 'A14 Bionic', screen: '6.7" Super Retina XDR OLED', cam: '12MP Triple', battery: '3687 mAh', os: 'iOS 14 (Upgraded)', build: 'Stainless Steel' },
+                historyNew: [20499000, 19500000, 18500000, 17500000, 16500000, 15500000, 14500000, 13500000, 12500000, 11500000, 10500000, 9500000, 9000000, 8500000, 8000000, 7500000, 7000000, 6800000],
+                historyUsed: [null, 17000000, 16000000, 15000000, 14000000, 13000000, 12000000, 11000000, 10000000, 9000000, 8000000, 7500000, 7000000, 6500000, 6000000, 5500000, 5000000, 4800000],
+                decayFactor: 0.995
+            },
+            'oppox7u': {
+                tags: ['oppo', 'opo', 'find', 'x7', 'ultra', 'hasselblad'], releaseYear: 2024,
+                brand: 'Oppo', name: 'Oppo Find X7 Ultra', storageVariants: ['256GB', '512GB', '1TB'],
+                specs: { chip: 'Snapdragon 8 Gen 3', screen: '6.82" AMOLED 120Hz', cam: '50MP Quad Hasselblad', battery: '5000 mAh (100W)', os: 'ColorOS 14', build: 'Eco Leather & Aluminum' },
+                historyNew: [16999000, 16500000, 16000000, 15500000, 15000000, 14800000, 14500000, 14200000, 13800000, 13500000, 13200000, 12800000, 12500000, 12200000, 11800000, 11500000, 11200000, 10800000],
+                historyUsed: [null, 14500000, 14000000, 13500000, 13200000, 12800000, 12500000, 12200000, 11800000, 11500000, 11200000, 10800000, 10500000, 10200000, 9800000, 9500000, 9200000, 8800000],
+                decayFactor: 0.975
+            },
+            'xiaomi14u': {
+                tags: ['xiaomi', 'mi', '14', 'ultra', 'leica'], releaseYear: 2024,
+                brand: 'Xiaomi', name: 'Xiaomi 14 Ultra', storageVariants: ['256GB', '512GB', '1TB'],
+                specs: { chip: 'Snapdragon 8 Gen 3', screen: '6.73" AMOLED 120Hz', cam: '50MP Quad Leica', battery: '5000 mAh (90W)', os: 'HyperOS', build: 'Titanium/Aluminum' },
+                historyNew: [18999000, 18500000, 18000000, 17500000, 17000000, 16800000, 16500000, 16200000, 15800000, 15500000, 15200000, 14800000, 14500000, 14200000, 13800000, 13500000, 13200000, 12800000],
+                historyUsed: [null, 15500000, 15000000, 14500000, 14200000, 13800000, 13500000, 13200000, 12800000, 12500000, 12200000, 11800000, 11500000, 11200000, 10800000, 10500000, 10200000, 9800000],
+                decayFactor: 0.975
             }
         };
 
         let globalNewsFeed = [];
 
-        // Helper function (Simulate storage jump multipliers)
-        const getStorageMultiplier = (storage) => storage === 'Mid' ? 1.12 : (storage === 'Max' ? 1.25 : 1);
-
-        // --- ASYNC API FETCH (Backend Connection with Offline Fallback) ---
+        // --- ASYNC API FETCH (READY FOR NODEJS/PYTHON BACKEND) ---
         async function fetchMarketNews() {
-            const backendUrl = BACKEND_URL;
+            // Placeholder API endpoint untuk narik Google Sheets / JSON API
+            const SHEET_API_URL = "https://script.google.com/macros/s/PLACEHOLDER_API_KEY/exec"; 
             try {
-                const response = await fetch(`${backendUrl}/api/news`);
-                if (!response.ok) throw new Error("HTTP error " + response.status);
-                const data = await response.json();
+                // TODO: UNCOMMENT KODE DI BAWAH JIKA BACKEND LU UDAH JALAN 
+                // const res = await fetch(SHEET_API_URL);
+                // const data = await res.json();
+                // return data;
                 
-                // Update live ticker status
-                const ticker = document.getElementById('live-ticker-text');
-                if (ticker) {
-                    ticker.innerHTML = "🔥 [SYSTEM ENGINE] KONEKSI LIVE BACKEND AKTIF --- 💰 MEMINDAI TREN PASAR REAL-TIME & HARGA E-COMMERCE";
-                }
-                
-                return data;
+                throw new Error("Simulate fallback to real-time placeholder data");
             } catch (error) {
-                console.warn("Backend API news not reachable, using offline simulated news:", error);
-                
-                // Keep the ticker indicating offline fallback
-                const ticker = document.getElementById('live-ticker-text');
-                if (ticker) {
-                    ticker.innerHTML = "🔥 [OFFLINE ENGINE] Menghubungkan ke localhost:5000... --- 💰 Menampilkan database simulasi lokal";
-                }
-
-                // Data fallback Real-time Crisis 2026
                 return [
-                    { date: "Jun 26", type: "alert", level: "High", title: "All-Time Low Sale", desc: "Harga unit baru terperosok ke tingkat dasar di platform online lokal." },
-                    { date: "May 26", type: "rumor", level: "High", title: "Krisis DRAM & RAM Global", desc: "Harga RAM/DRAM global melonjak tajam karena dialihkan ke server AI, memicu kenaikan biaya produksi HP yang diproyeksikan naik 6.9% - 13% menjelang 2027." },
-                    { date: "Jan 26", type: "alert", level: "Medium", title: "New Generation Panic", desc: "Rilisnya device flagship generasi baru membuat panic selling wajar di pasar seken." }
+                    { date: "Jun 26", type: "alert", title: "All-Time Low Sale", desc: "Harga unit baru terperosok ke tingkat dasar di platform online lokal." },
+                    { date: "May 26", type: "rumor", title: "Krisis DRAM & RAM Global", desc: "Harga RAM/DRAM global melonjak tajam karena dialihkan ke server AI, memicu kenaikan biaya produksi HP yang diproyeksikan naik 6.9% - 13% menjelang 2027.", alertMsg: "Peringatan: Harga target perangkat mungkin mengalami inflasi ~10% akibat krisis komponen global." },
+                    { date: "Jan 26", type: "alert", title: "New Generation Panic", desc: "Rilisnya device flagship generasi baru membuat panic selling wajar di pasar seken." }
                 ];
             }
         }
 
         window.onload = async function() {
-            setupSearchEngine('device-search-onboard', 'onboard-search-results', 'selected-device-code');
             setupSearchEngine('device-search-home', 'home-search-results', null, true);
-            checkOnboarding();
-            loadSavingsData();
             
-            // Load hunting target if any
+            // Bypass onboarding modal, directly use defaults or saved storage
+            currentUsername = localStorage.getItem('bc_username_app') || 'Developer';
+            targetBirthdayDate = localStorage.getItem('bc_target_date_app') || '2027-02-11';
+            activeDevice = localStorage.getItem('bc_active_device_app') || 's25u';
+            
+            const nameEl = document.getElementById('display-username-home');
+            if(nameEl) nameEl.innerText = currentUsername;
+
+            loadSavingsData();
+            updateHomeDashboard();
+            navigateTo('home');
+
+            globalNewsFeed = await fetchMarketNews();
+            
             const savedHunt = localStorage.getItem('bc_hunting_target');
             if(savedHunt) {
                 huntingTargetPrice = parseFloat(savedHunt);
@@ -659,38 +612,39 @@
                     el.classList.remove('hidden');
                 }
             }
-
-            globalNewsFeed = await fetchMarketNews();
         };
 
-        // --- DYNAMIC TIMELINE LABELS ---
+        // --- DYNAMIC TIMELINE LABEL GENERATOR (Based on release year) ---
         function generateTimelineLabels(releaseYear) {
             const labels = [];
             const endYear = 2026;
+            const endMonth = 6; // June
             let startYear = releaseYear;
-            const totalMonths = ((endYear - startYear) * 12) + 5; 
-            const step = totalMonths / 17; 
+            let startMonth = 1; // Assume Jan release
+            
+            const totalMonths = ((endYear - startYear) * 12) + endMonth - startMonth + 1;
+            const step = Math.max(1, totalMonths / 18);
+            
             for(let i = 0; i < 18; i++) {
-                let offset = Math.round(i * step);
-                let y = startYear + Math.floor(offset / 12);
-                let m = (1 + offset) % 12;
-                if(m === 0) { m = 12; y -= 1; }
+                let offset = Math.floor(i * step);
+                let y = startYear + Math.floor((startMonth - 1 + offset) / 12);
+                let m = ((startMonth - 1 + offset) % 12) + 1;
+                
                 const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 labels.push(`${monthNames[m-1]} ${y.toString().slice(-2)}`);
             }
+            labels[17] = "Jun 26"; // Ensure it ends dynamically at Jun 26
             return labels;
         }
 
-        // --- INTERACTIVE POP-UP TOAST NOTIFICATIONS ---
         function showToast(message, isAlert = false) {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
-            
             const borderCls = isAlert ? 'border-rose-500/50 shadow-[0_5px_20px_rgba(244,63,94,0.3)]' : 'border-[#06b6d4]/50 shadow-[0_5px_20px_rgba(6,182,212,0.2)]';
             const iconBgCls = isAlert ? 'bg-rose-500/20 text-rose-400' : 'bg-[#06b6d4]/20 text-cyan-400';
             const pingCls = isAlert ? 'bg-rose-400' : 'bg-cyan-400';
 
-            toast.className = `bg-[#1e293b]/95 backdrop-blur-md border ${borderCls} p-4 rounded-xl flex items-center gap-3 toast-enter max-w-[300px] pointer-events-auto`;
+            toast.className = `bg-[#1e293b]/95 backdrop-blur-md border ${borderCls} p-4 rounded-xl flex items-center gap-3 toast-enter max-w-[300px] pointer-events-auto mb-3`;
             toast.innerHTML = `
                 <div class="w-8 h-8 rounded-full ${iconBgCls} flex items-center justify-center shrink-0">
                     <span class="animate-ping absolute w-8 h-8 rounded-full ${pingCls} opacity-20"></span>
@@ -707,187 +661,80 @@
             }, 6000);
         }
 
-        // --- SEARCH ENGINE SIMULATOR & ONLINE DIRECTORY ---
+        // --- SEARCH ENGINE SIMULATOR ---
         function setupSearchEngine(inputId, resultsId, hiddenInputId, autoSwitch = false) {
             const input = document.getElementById(inputId);
             const resultsBox = document.getElementById(resultsId);
+            
             if(!input || !resultsBox) return;
 
-            let debounceTimeout = null;
-
             input.addEventListener('input', function() {
-                const query = this.value.trim();
+                const query = this.value.toLowerCase().replace(/\s+/g, '');
                 resultsBox.innerHTML = '';
-                if(query.length < 2) { resultsBox.classList.remove('active'); return; }
-
-                // 1. Cari kecocokan di database lokal dahulu (multi-word match)
-                let matches = [];
-                const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
-                for(const [code, data] of Object.entries(globalDeviceDB)) {
-                    const nameLower = data.name.toLowerCase();
-                    const allTermsMatch = queryTerms.every(term => {
-                        return data.tags.some(tag => tag.includes(term)) || nameLower.includes(term);
-                    });
-                    if(allTermsMatch) {
-                        matches.push({ code, data, source: 'local' });
-                    }
-                }
-
-                // Render kecocokan lokal awal
-                if(matches.length > 0) {
-                    renderMatches(matches);
-                }
-
-                // 2. Debounce dan fetch hasil pencarian dari GSM Arena via Backend API
-                clearTimeout(debounceTimeout);
-                debounceTimeout = setTimeout(async () => {
-                    const backendUrl = BACKEND_URL;
-                    try {
-                        const response = await fetch(`${backendUrl}/api/search?q=${encodeURIComponent(query)}`);
-                        if (response.ok) {
-                            const backendMatches = await response.json(); // Array of { name, brand, specs, releaseYear }
-                            
-                            // Filter data yang belum ada di local matches / globalDeviceDB
-                            const filteredBackend = backendMatches.filter(bm => {
-                                const existsLocally = Object.values(globalDeviceDB).some(ld => ld.name.toLowerCase() === bm.name.toLowerCase());
-                                return !existsLocally;
-                            });
-
-                            if(filteredBackend.length > 0) {
-                                const formattedMatches = filteredBackend.map(bm => {
-                                    // Bikin kode unik unik (slug)
-                                    const code = bm.name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8);
-                                    
-                                    // Tentukan estimasi harga dasar historis tiruan
-                                    let estBase = 15000000;
-                                    if(bm.name.toLowerCase().includes("ultra") || bm.name.toLowerCase().includes("pro max")) estBase = 22000000;
-                                    else if(bm.name.toLowerCase().includes("pro") || bm.name.toLowerCase().includes("plus")) estBase = 16000000;
-                                    else if(bm.name.toLowerCase().includes("a5") || bm.name.toLowerCase().includes("redmi")) estBase = 5000000;
-
-                                    return {
-                                        code: code,
-                                        data: {
-                                            brand: bm.brand,
-                                            name: bm.name,
-                                            tags: [bm.name.toLowerCase(), bm.brand.toLowerCase()],
-                                            releaseYear: bm.releaseYear || 2025,
-                                            storageVariants: ['256GB', '512GB', '1TB'],
-                                            specs: bm.specs,
-                                            pricing: {
-                                                'Base': {
-                                                    // Riwayat 18 poin harga menurun linear
-                                                    historyNew: Array.from({length: 18}, (_, i) => Math.round(estBase * (1.1 - (i * 0.012)))),
-                                                    historyUsed: Array.from({length: 18}, (_, i) => i === 0 ? null : Math.round(estBase * 0.85 * (1.1 - (i * 0.015)))),
-                                                    decayFactor: 0.985
-                                                }
-                                            }
-                                        },
-                                        source: 'backend'
-                                    };
-                                });
-
-                                // Gabungkan dan render ulang
-                                matches = [...matches, ...formattedMatches];
-                                renderMatches(matches);
-                            }
-                        }
-                    } catch (err) {
-                        console.log("Pencarian online offline (backend tidak merespon).");
-                    }
-                }, 400);
-            });
-
-            function renderMatches(items) {
-                resultsBox.innerHTML = '';
-                if(items.length === 0) {
-                    resultsBox.innerHTML = `<div class="p-3 text-xs text-slate-500 text-center">Tidak ditemukan. Coba keyword lain.</div>`;
-                    resultsBox.classList.add('active');
+                
+                if(query.length < 2) {
+                    resultsBox.classList.remove('active');
                     return;
                 }
 
-                items.forEach(match => {
-                    const div = document.createElement('div');
-                    div.className = 'search-item';
-                    const badge = match.source === 'backend' ? '<span class="text-[8px] bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/30 font-bold ml-1.5">ONLINE</span>' : '';
-                    div.innerHTML = `
-                        <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-cyan-400">${match.data.brand.charAt(0)}</div>
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-white flex items-center">${match.data.name} ${badge}</p>
-                            <p class="text-[10px] text-slate-500">${match.data.specs.chip || 'Mengambil data spek...'}</p>
-                        </div>
-                    `;
-                    div.onclick = () => {
-                        // Jika berasal dari GSM Arena, masukkan ke database lokal browser
-                        if (match.source === 'backend' && !globalDeviceDB[match.code]) {
-                            globalDeviceDB[match.code] = match.data;
-                        }
-                        input.value = match.data.name;
-                        resultsBox.classList.remove('active');
-                        if(hiddenInputId) document.getElementById(hiddenInputId).value = match.code;
-                        if(autoSwitch) switchGlobalDevice(match.code);
-                    };
-                    resultsBox.appendChild(div);
-                });
-                resultsBox.classList.add('active');
-            }
+                let matches = [];
+                for(const [code, data] of Object.entries(globalDeviceDB)) {
+                    const matchFound = data.tags.some(tag => tag.includes(query)) || data.name.toLowerCase().replace(/\s+/g, '').includes(query);
+                    if(matchFound) matches.push({ code, data });
+                }
+
+                if(matches.length > 0) {
+                    matches.forEach(match => {
+                        const div = document.createElement('div');
+                        div.className = 'search-item';
+                        div.innerHTML = `
+                            <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-cyan-400">${match.data.brand.charAt(0)}</div>
+                            <div>
+                                <p class="text-sm font-bold text-white">${match.data.name}</p>
+                                <p class="text-[10px] text-slate-500">${match.data.specs.chip} • Rilis: ${match.data.releaseYear}</p>
+                            </div>
+                        `;
+                        div.onclick = () => {
+                            input.value = match.data.name;
+                            resultsBox.classList.remove('active');
+                            if(hiddenInputId) document.getElementById(hiddenInputId).value = match.code;
+                            if(autoSwitch) {
+                                switchGlobalDevice(match.code);
+                            }
+                        };
+                        resultsBox.appendChild(div);
+                    });
+                    resultsBox.classList.add('active');
+                } else {
+                    resultsBox.innerHTML = `<div class="p-3 text-xs text-slate-500 text-center">Tidak ditemukan. Coba keyword lain.</div>`;
+                    resultsBox.classList.add('active');
+                }
+            });
 
             document.addEventListener('click', (e) => {
-                if(e.target !== input && e.target !== resultsBox) resultsBox.classList.remove('active');
+                if(e.target !== input && e.target !== resultsBox) {
+                    resultsBox.classList.remove('active');
+                }
             });
         }
 
-        // --- APP ONBOARDING SYSTEM ---
-        function checkOnboarding() {
-            const savedName = localStorage.getItem('bc_username_app');
-            const savedDate = localStorage.getItem('bc_target_date_app');
-            const savedDevice = localStorage.getItem('bc_active_device_app');
-            if (savedName) currentUsername = savedName;
-            if (savedDate) targetBirthdayDate = savedDate;
-            if (savedDevice) activeDevice = savedDevice;
-            
-            // Always skip onboarding modal — go straight to dashboard
-            document.getElementById('display-username-home').innerText = currentUsername;
-            document.getElementById('onboarding-modal').classList.add('hidden');
-            updateHomeDashboard();
-            navigateTo('home');
-        }
-
-        function saveUserProfile() {
-            const nameInput = document.getElementById('user-name-input').value.trim();
-            const dateInput = document.getElementById('user-date-input').value;
-            const deviceInput = document.getElementById('selected-device-code').value;
-            
-            if(!nameInput || !dateInput) { alert("Harap isi semua form!"); return; }
-
-            localStorage.setItem('bc_username_app', nameInput);
-            localStorage.setItem('bc_target_date_app', dateInput);
-            localStorage.setItem('bc_active_device_app', deviceInput);
-            
-            currentUsername = nameInput; targetBirthdayDate = dateInput; activeDevice = deviceInput;
-            document.getElementById('display-username-home').innerText = currentUsername;
-            isDashboardInit = false; 
-            
-            document.getElementById('onboarding-modal').classList.add('opacity-0');
-            setTimeout(() => {
-                document.getElementById('onboarding-modal').classList.add('hidden');
-                updateHomeDashboard();
-                navigateTo('home');
-            }, 700);
-        }
-
         function resetUser() {
-            if(confirm("Apakah Anda ingin mengganti nama atau profil?")) {
-                localStorage.removeItem('bc_username_app');
-                document.getElementById('onboarding-modal').classList.remove('hidden');
-                setTimeout(() => document.getElementById('onboarding-modal').classList.remove('opacity-0'), 10);
+            const newName = prompt("Masukkan nama panggilan baru:", currentUsername);
+            if (newName && newName.trim() !== "") {
+                currentUsername = newName.trim();
+                localStorage.setItem('bc_username_app', currentUsername);
+                const nameEl = document.getElementById('display-username-home');
+                if(nameEl) nameEl.innerText = currentUsername;
             }
         }
 
         function switchGlobalDevice(devCode) {
             activeDevice = devCode;
             localStorage.setItem('bc_active_device_app', devCode);
-            const searchHome = document.getElementById('device-search-home');
-            if(searchHome) searchHome.value = ''; 
+            document.getElementById('device-search-home').value = ''; 
+            
+            const ticker = document.getElementById('live-ticker-text');
+            if(ticker) ticker.innerText = `🔄 [UPDATE] Memindahkan fokus pelacakan ke ${globalDeviceDB[activeDevice].name}...`;
             
             updateHomeDashboard();
             if(isDashboardInit) {
@@ -907,30 +754,44 @@
             
             if(btnBase) btnBase.innerText = vars[0] || 'Base';
             if(btnMid) btnMid.innerText = vars[1] || 'Mid';
+            
             if(vars.length > 2 && btnMax) {
                 btnMax.innerText = vars[2];
-                btnMax.classList.remove('hidden'); btnMax.classList.add('sm:block');
+                btnMax.classList.remove('hidden');
+                btnMax.classList.add('sm:block');
             } else if(btnMax) {
-                btnMax.classList.add('hidden'); btnMax.classList.remove('sm:block');
+                btnMax.classList.add('hidden');
+                btnMax.classList.remove('sm:block');
                 if(currentStorage === 'Max') currentStorage = 'Base';
             }
+
+            // Sync visual active state
             setStorage(currentStorage, true);
         }
 
         function setStorage(storageLevel, skipUpdate = false) {
             currentStorage = storageLevel;
+            
+            // Update Tab UI
             ['Base', 'Mid', 'Max'].forEach(level => {
                 const btn = document.getElementById(`tab-${level}`);
                 if(btn && !btn.classList.contains('hidden')) {
-                    if(level === storageLevel) btn.className = `px-3 py-1.5 text-xs font-bold rounded-lg bg-[#06b6d4] text-slate-900 transition-all ${level==='Max'?'hidden sm:block':''}`;
-                    else btn.className = `px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all ${level==='Max'?'hidden sm:block':''}`;
+                    if(level === storageLevel) {
+                        btn.className = `px-3 py-1.5 text-xs font-bold rounded-lg bg-[#06b6d4] text-slate-900 transition-all ${level==='Max'?'hidden sm:block':''}`;
+                    } else {
+                        btn.className = `px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all ${level==='Max'?'hidden sm:block':''}`;
+                    }
                 }
             });
-            if(!skipUpdate && isDashboardInit) { updateAllSections(); initCharts(); }
+
+            if(!skipUpdate && isDashboardInit) {
+                updateAllSections();
+                initCharts();
+            }
         }
 
-        // --- NAVIGATION ---
-        function navigateTo(screenId, sectionId = null) {
+        // --- NAVIGATION WITH GLOW EFFECTS ---
+        function navigateTo(screenId, cardId = null) {
             document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
             document.getElementById(`screen-${screenId}`).classList.add('active');
             window.scrollTo(0, 0);
@@ -941,21 +802,28 @@
                     updateAllSections();
                     initCharts();
                     isDashboardInit = true;
-                    if(sectionId) scrollToSection(sectionId);
+                    if(cardId) scrollToAndGlow(cardId);
                 }, 50);
-            } else if (screenId === 'dashboard' && sectionId) {
-                setTimeout(() => scrollToSection(sectionId), 10);
+            } else if (screenId === 'dashboard' && cardId) {
+                setTimeout(() => scrollToAndGlow(cardId), 10);
             }
         }
 
-        function scrollToSection(id) {
+        function scrollToAndGlow(id) {
             const el = document.getElementById(id);
             if(el) {
+                // Calculate position slightly above the element for breathing room
                 const yOffset = -80; 
                 const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
                 window.scrollTo({top: y, behavior: 'smooth'});
+                
+                // Add the Neon Glow class
                 el.classList.add('glow-active');
-                setTimeout(() => el.classList.remove('glow-active'), 2000);
+                
+                // Remove it after the animation completes (2 seconds)
+                setTimeout(() => {
+                    el.classList.remove('glow-active');
+                }, 2000);
             }
         }
 
@@ -969,51 +837,41 @@
             const meta = globalDeviceDB[activeDevice];
             const dFormatted = new Date(targetBirthdayDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
             
-            const tgtDateEl = document.getElementById('home-target-date-display');
-            if(tgtDateEl) tgtDateEl.innerText = dFormatted;
+            const td = document.getElementById('home-target-date-display');
+            if(td) td.innerText = dFormatted;
             
-            const devModEl = document.getElementById('home-device-model');
-            if(devModEl) devModEl.innerText = meta.name;
+            const md = document.getElementById('home-device-model');
+            if(md) md.innerText = meta.name;
             
             updateSavingsUI();
         }
 
         function updateAllSections() {
             const meta = globalDeviceDB[activeDevice];
-            const pricing = meta.pricing['Base']; 
             const multiplier = getStorageMultiplier(currentStorage);
             
-            const devNameEl = document.getElementById('dashboard-device-name-display');
-            if(devNameEl) devNameEl.innerText = meta.name;
+            const dd = document.getElementById('dashboard-device-name-display');
+            if(dd) dd.innerText = meta.name;
             
             const vars = meta.storageVariants || ['Base', 'Mid', 'Max'];
             const idx = currentStorage === 'Base' ? 0 : currentStorage === 'Mid' ? 1 : 2;
+            
             const storageInfoEl = document.getElementById('storage-multiplier-info');
             if (storageInfoEl) storageInfoEl.innerText = `Varian ${vars[idx]}`;
 
-            // Calc Current, Low, High, Avg
-            const idrNewHistory = pricing.historyNew.map(v => v ? Math.round(v * multiplier) : null).filter(v=>v!==null);
-            const currentIdrNew = idrNewHistory[idrNewHistory.length - 1];
-            const lowest = Math.min(...idrNewHistory);
-            const highest = Math.max(...idrNewHistory);
-            const avg = idrNewHistory.reduce((a, b) => a + b, 0) / idrNewHistory.length;
-
-            const sumCurIdrEl = document.getElementById('summary-cur-idr');
-            if (sumCurIdrEl) sumCurIdrEl.innerText = formatterIDR.format(currentIdrNew);
+            // Current Price Calculation dynamically from last array item
+            const currentIdrNew = Math.round(meta.historyNew[meta.historyNew.length - 1] * multiplier);
             
-            const statLowEl = document.getElementById('stat-low');
-            if(statLowEl) statLowEl.innerText = formatterIDR.format(lowest);
-            const statAvgEl = document.getElementById('stat-avg');
-            if(statAvgEl) statAvgEl.innerText = formatterIDR.format(avg);
-            const statHighEl = document.getElementById('stat-high');
-            if(statHighEl) statHighEl.innerText = formatterIDR.format(highest);
-
+            const summaryCurIdrEl = document.getElementById('summary-cur-idr');
+            if (summaryCurIdrEl) summaryCurIdrEl.innerText = formatterIDR.format(currentIdrNew);
+            
             const brandBadgeEl = document.getElementById('brand-badge-3d');
             if (brandBadgeEl) brandBadgeEl.innerText = meta.brand;
             
             const releaseYearEl = document.getElementById('lbl-release-year');
             if (releaseYearEl) releaseYearEl.innerText = `Dirilis ${meta.releaseYear}`;
 
+            // Render Detailed Specs List
             const specList = document.getElementById('detailed-specs-list');
             if(specList) {
                 specList.innerHTML = `
@@ -1026,26 +884,28 @@
                 `;
             }
 
-            // Gauge Pointer Calculation
-            let pct = ((highest - currentIdrNew) / (highest - lowest)) * 100;
-            if(isNaN(pct)) pct = 0;
+            // Calculate Recommendation based purely on Data (Highest vs Current)
+            const maxVal = Math.max(...meta.historyNew) * multiplier;
+            const minVal = Math.min(...meta.historyNew) * multiplier;
+            let pct = ((maxVal - currentIdrNew) / (maxVal - minVal)) * 100;
             pct = Math.max(5, Math.min(pct, 95));
             
-            const buyIndEl = document.getElementById('buy-indicator');
-            if (buyIndEl) buyIndEl.style.left = `${pct}%`;
+            const buyIndicatorEl = document.getElementById('buy-indicator');
+            if (buyIndicatorEl) buyIndicatorEl.style.left = `${pct}%`;
             
-            const buyTextEl = document.getElementById('buy-analysis-text');
-            if (buyTextEl) {
-                if(pct > 80) buyTextEl.innerText = "Buy!";
-                else if(pct > 60) buyTextEl.innerText = "Okay";
-                else if(pct > 40) buyTextEl.innerText = "Wait";
-                else buyTextEl.innerText = "Skip";
+            const buyAnalysisEl = document.getElementById('buy-analysis-text');
+            if (buyAnalysisEl) {
+                if(pct > 80) buyAnalysisEl.innerText = "Buy!";
+                else if(pct > 60) buyAnalysisEl.innerText = "Okay";
+                else if(pct > 40) buyAnalysisEl.innerText = "Wait";
+                else buyAnalysisEl.innerText = "Skip";
 
                 let colorCls = "text-rose-500";
                 if(pct > 80) colorCls = "text-emerald-500";
                 else if(pct > 60) colorCls = "text-emerald-300";
                 else if(pct > 40) colorCls = "text-amber-400";
-                buyTextEl.className = `text-sm font-bold text-center p-2 rounded-lg border border-slate-800 ${colorCls}`;
+                
+                buyAnalysisEl.className = `text-base font-bold text-center p-3 rounded-lg border border-slate-800 ${colorCls}`;
             }
 
             scanLiveMarket();
@@ -1053,350 +913,17 @@
             calculateTCO(currentIdrNew);
             
             const dFormatted = new Date(targetBirthdayDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-            const bTargetDateEl = document.getElementById('brankas-target-date');
-            if (bTargetDateEl) bTargetDateEl.innerText = dFormatted;
+            
+            const brankasTargetDateEl = document.getElementById('brankas-target-date');
+            if (brankasTargetDateEl) brankasTargetDateEl.innerText = dFormatted;
             
             calculateNabungRequirement();
+
+            // CHECK INFLATION ALERT RULES
             checkInflationAlert();
+            
+            // Populate Drop Grid
             generateDropsGrid();
-        }
-
-        function checkInflationAlert() {
-            const targetDate = new Date(targetBirthdayDate);
-            const alertBox = document.getElementById('brankas-inflation-alert');
-            if (!alertBox) return;
-            const hasCrisisNews = globalNewsFeed.some(n => n.title.includes("Krisis DRAM") || n.title.includes("RAM Global"));
-            if (targetDate.getFullYear() >= 2027 && hasCrisisNews) alertBox.classList.remove('hidden');
-            else alertBox.classList.add('hidden');
-        }
-
-        function generateDropsGrid() {
-            const grid = document.getElementById('drops-grid');
-            if (!grid) return;
-            grid.innerHTML = '';
-            
-            const meta = globalDeviceDB[activeDevice];
-            const multiplier = getStorageMultiplier(currentStorage);
-            const prices = meta.pricing['Base'].historyUsed.map(p => p ? Math.round(p * multiplier) : null);
-            
-            let drops = [];
-            for(let i = 1; i < prices.length; i++) {
-                if(prices[i] !== null && prices[i-1] !== null && prices[i] < prices[i-1]) {
-                    const diff = prices[i-1] - prices[i];
-                    const pct = ((diff / prices[i-1]) * 100).toFixed(2);
-                    if(pct > 2.0) drops.push({ date: currentLabels[i], old: prices[i-1], new: prices[i], pct: pct });
-                }
-            }
-
-            drops.sort((a, b) => b.pct - a.pct);
-            
-            drops.slice(0, 6).forEach(drop => {
-                grid.innerHTML += `
-                    <div class="bg-[#1e293b] rounded-lg p-4 border border-slate-700">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold text-slate-300">Price Drop</span>
-                            <span class="text-xs text-slate-500">${drop.date}</span>
-                        </div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-red-400 line-through text-sm">${formatterIDR.format(drop.old)}</span>
-                            <span class="text-slate-400 text-xs">→</span>
-                            <span class="text-emerald-400 font-bold">${formatterIDR.format(drop.new)}</span>
-                        </div>
-                        <div class="text-xs text-slate-400 mt-2 bg-slate-800 px-2 py-0.5 rounded-sm inline-block">${drop.pct}% drop</div>
-                    </div>
-                `;
-            });
-            if(drops.length === 0) grid.innerHTML = `<div class="col-span-full text-center text-slate-500 text-sm py-4">Belum ada data penurunan harga signifikan untuk perangkat ini.</div>`;
-        }
-
-        // --- CHART ENGINE ---
-        function initCharts() {
-            renderNewsFeed();
-            const meta = globalDeviceDB[activeDevice];
-            const pricing = meta.pricing['Base'];
-            const multiplier = getStorageMultiplier(currentStorage);
-            const ctx = document.getElementById('priceChart');
-            
-            currentLabels = generateTimelineLabels(meta.releaseYear);
-            const idrNewHistory = pricing.historyNew.map(v => v ? Math.round(v * multiplier) : null);
-            const idrUsedHistory = pricing.historyUsed.map(v => v ? Math.round(v * multiplier) : null);
-            
-            if(ctx) {
-                if (mainChartInstance) mainChartInstance.destroy();
-                mainChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels: currentLabels, datasets: [
-                        { label: 'New', data: idrNewHistory, borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.1)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3 },
-                        { label: 'Second', data: idrUsedHistory, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.05)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.3 }
-                    ]},
-                    options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
-                        plugins: { 
-                            legend: { display: false }, 
-                            tooltip: { 
-                                backgroundColor: 'rgba(15, 23, 42, 0.95)', padding: 12,
-                                callbacks: {
-                                    label: function(context) { return context.dataset.label + ': ' + formatterIDR.format(context.parsed.y); },
-                                    afterBody: function(context) {
-                                        const dateLabel = context[0].label;
-                                        const newsItem = globalNewsFeed.find(n => n.date === dateLabel);
-                                        if(newsItem) return '\n📰 ' + newsItem.title + '\n' + (newsItem.desc || '');
-                                        return '';
-                                    }
-                                }
-                            } 
-                        },
-                        scales: { 
-                            y: { ticks: { color: '#64748b', callback: v => 'Rp' + (v/1000000).toFixed(1) + 'Jt', font: {size: 10} }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, 
-                            x: { ticks: { color: '#64748b', font: {size: 10} }, grid: { display: false } } 
-                        }
-                    }
-                });
-            }
-            generatePrediction(idrNewHistory[idrNewHistory.length-1], idrUsedHistory[idrUsedHistory.length-1], pricing.decayFactor);
-        }
-
-        function generatePrediction(baseNewIdr, baseUsedIdr, decayFactor) {
-            const steps = 6;
-            let tempDateStr = currentLabels[currentLabels.length-1]; 
-            let monthMap = {"Jan":0, "Feb":1, "Mar":2, "Apr":3, "May":4, "Jun":5, "Jul":6, "Aug":7, "Sep":8, "Oct":9, "Nov":10, "Dec":11};
-            let startPredDate = new Date(2000 + parseInt(tempDateStr.split(' ')[1]), monthMap[tempDateStr.split(' ')[0]], 1);
-            
-            const targetDate = new Date(targetBirthdayDate);
-            const monthsLeft = Math.max(2, Math.round((targetDate - startPredDate) / (1000 * 60 * 60 * 24 * 30)));
-            
-            const futureLabels = [tempDateStr];
-            const stepMonths = Math.max(1, Math.round(monthsLeft / steps));
-            
-            for(let i=1; i<=steps; i++) {
-                const stepDate = new Date(startPredDate);
-                stepDate.setMonth(stepDate.getMonth() + (i * stepMonths));
-                futureLabels.push(stepDate.toLocaleDateString('en-US', { month: 'short' }) + ' ' + stepDate.toLocaleDateString('en-US', { year: '2-digit' }));
-            }
-            
-            let projUsed = [baseUsedIdr];
-            let projNew = [baseNewIdr];
-            let curUsed = baseUsedIdr;
-            let curNew = baseNewIdr;
-            
-            for(let i=1; i<=steps; i++) {
-                if(futureLabels[i].includes('Jan 27') || futureLabels[i].includes('Feb 27')) {
-                     curUsed = Math.round(curUsed * 0.88);
-                     curNew = Math.round(curNew * 1.05); 
-                } else {
-                     curUsed = Math.round(curUsed * decayFactor);
-                     curNew = Math.round(curNew * (decayFactor + 0.005));
-                }
-                projUsed.push(curUsed);
-                projNew.push(curNew);
-            }
-
-            const ctxP = document.getElementById('predictChart');
-            if(!ctxP) return;
-            if (predictChartInstance) predictChartInstance.destroy();
-            
-            predictChartInstance = new Chart(ctxP, {
-                type: 'line', data: { labels: futureLabels, datasets: [
-                    { label: 'Pred New', data: projNew, borderColor: '#06b6d4', borderDash: [5, 5], borderWidth: 2, tension: 0.3, pointRadius: 1 },
-                    { label: 'Pred Second', data: projUsed, borderColor: '#6366f1', borderDash: [5, 5], borderWidth: 2, tension: 0.3, pointRadius: 1 }
-                ]},
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)' } },
-                    scales: { 
-                        y: { ticks: { color: '#64748b', callback: v => 'Rp' + (v/1000000).toFixed(1) + 'Jt', font: {size: 10} }, grid: { color: 'rgba(255, 255, 255, 0.05)' } }, 
-                        x: { ticks: { color: '#64748b', font: {size: 10} }, grid: { display: false } } 
-                    }
-                }
-            });
-        }
-
-        function renderNewsFeed() {
-            const list = document.getElementById('news-list');
-            if(!list) return;
-            list.innerHTML = '';
-            
-            globalNewsFeed.forEach(news => {
-                let badgeColor = news.type === 'alert' ? "bg-rose-500/20 text-rose-400 border-rose-500/30" : (news.type === 'rumor' ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-slate-500 text-slate-400");
-                let bulletColor = news.type === 'alert' ? 'bg-rose-500' : (news.type === 'rumor' ? 'bg-amber-500' : 'bg-slate-500');
-                list.innerHTML += `
-                    <li class="relative pl-5 cursor-pointer hover:bg-slate-800/50 p-1.5 rounded transition-colors border border-transparent">
-                        <div class="absolute left-0 top-3 w-2 h-2 ${bulletColor} rounded-full ring-4 ring-[#0f172a]"></div>
-                        <div class="text-[9px] font-bold ${badgeColor} border px-1.5 py-0.2 rounded uppercase tracking-wider mb-1 inline-block">${news.date} • ${news.type}</div>
-                        <h4 class="text-xs font-bold text-white">${news.title}</h4>
-                        <p class="text-[9px] text-slate-400 leading-tight mt-0.5">${news.desc}</p>
-                    </li>
-                `;
-            });
-        }
-
-        // --- HUNTING TARGET FEATURE ---
-        function setHuntingTarget() {
-            const inputEl = document.getElementById('hunting-price-input');
-            if(!inputEl) return;
-            const val = parseFloat(inputEl.value);
-            if(isNaN(val) || val <= 0) return;
-
-            huntingTargetPrice = val;
-            localStorage.setItem('bc_hunting_target', val.toString());
-
-            const statusEl = document.getElementById('hunting-status');
-            if(statusEl) {
-                statusEl.innerText = `Target aktif: ${formatterIDR.format(val)}`;
-                statusEl.classList.remove('hidden');
-                statusEl.classList.remove('text-slate-400');
-                statusEl.classList.add('text-emerald-400');
-            }
-            alert(`Target harga ${formatterIDR.format(val)} berhasil disimpan! Kami akan memindai (scan) untuk harga tersebut.`);
-        }
-
-        function checkHuntingTargetAlert(lowestPriceFound, storeName) {
-            if(huntingTargetPrice && lowestPriceFound <= huntingTargetPrice) {
-                showToast(`🚨 ALARM HUNTING: Harga ${globalDeviceDB[activeDevice].name} telah menyentuh ${formatterIDR.format(lowestPriceFound)} di ${storeName}! Segera sikat!`, true);
-            }
-        }
-
-        // --- REAL ECOMMERCE FETCH LOGIC (API READY) ---
-        async function fetchMarketPrices(deviceId, storage, isNew) {
-            const backendUrl = BACKEND_URL;
-            const meta = globalDeviceDB[deviceId];
-            const deviceName = meta.name;
-
-            try {
-                // Tembak backend API scraper
-                const response = await fetch(`${backendUrl}/api/scrape?device=${encodeURIComponent(deviceName)}&condition=${isNew ? 'new' : 'used'}&storage=${storage}`);
-                if (!response.ok) throw new Error("HTTP error " + response.status);
-                const data = await response.json();
-                
-                return {
-                    tokped: data.tokped,
-                    shopee: data.shopee,
-                    blibli: data.blibli
-                };
-            } catch (error) {
-                console.warn("Backend API scrape failed, using offline simulation:", error);
-                
-                // Fallback ke simulasi data lokal
-                const pricing = globalDeviceDB[deviceId].pricing['Base'];
-                const multiplier = getStorageMultiplier(storage);
-                const arraySource = isNew ? pricing.historyNew : pricing.historyUsed;
-                const baseIdr = arraySource[arraySource.length-1] * multiplier;
-
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        resolve({
-                            tokped: baseIdr,
-                            shopee: baseIdr,
-                            blibli: baseIdr
-                        });
-                    }, 500); 
-                });
-            }
-        }
-
-        async function scanLiveMarket() {
-            const btn = document.getElementById('btn-scan-market');
-            const grid = document.getElementById('ecommerce-cards-grid');
-            if(!grid || !btn) return;
-            
-            btn.innerHTML = `<svg class="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Memindai...</span>`;
-            btn.disabled = true;
-
-            grid.innerHTML = `
-                <div class="bg-[#050b14] p-4 rounded-xl border border-slate-800 animate-pulse h-24 flex items-center justify-center">
-                    <span class="text-xs font-bold text-slate-500 flex items-center gap-2"><div class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div> Memuat Database...</span>
-                </div>
-            `;
-
-            try {
-                const isNew = currentMarketCond === 'new';
-                const liveData = await fetchMarketPrices(activeDevice, currentStorage, isNew);
-                grid.innerHTML = '';
-
-                const listStores = [
-                    { name: 'Tokopedia', icon: 'T', bg: 'bg-emerald-500', val: liveData.tokped, link: \`https://www.tokopedia.com/search?q=\${globalDeviceDB[activeDevice].name}\` },
-                    { name: 'Shopee', icon: 'S', bg: 'bg-orange-500', val: liveData.shopee, link: \`https://shopee.co.id/search?keyword=\${globalDeviceDB[activeDevice].name}\` },
-                    { name: 'Blibli', icon: 'B', bg: 'bg-blue-500', val: liveData.blibli, link: \`https://www.blibli.com/jual/\${globalDeviceDB[activeDevice].name.replace(' ', '-')}\` }
-                ];
-
-                listStores.sort((a,b) => a.val - b.val);
-
-                listStores.forEach((store, idx) => {
-                    const isCheapest = idx === 0;
-                    const borderCls = isCheapest ? 'border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'border-slate-800';
-                    const displayVal = formatterIDR.format(store.val);
-                    
-                    grid.innerHTML += \`
-                        <div class="bg-[#050b14] p-4 rounded-xl border \${borderCls} relative transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group" onclick="window.open('\${store.link}', '_blank')">
-                            \${isCheapest ? \`<div class="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10">TERMURAH</div>\` : ''}
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="w-8 h-8 \${store.bg} rounded-lg flex items-center justify-center font-black text-white text-sm">\${store.icon}</div>
-                                <div class="flex-1">
-                                    <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors flex items-center gap-1">\${store.name} ➔</p>
-                                    <p class="text-[9px] text-slate-500 leading-none">Local Vendor</p>
-                                </div>
-                            </div>
-                            <p class="text-lg font-black text-white">\${displayVal}</p>
-                        </div>
-                    \`;
-                });
-
-                // Cek apakah target hunting terpenuhi
-                if (listStores.length > 0) {
-                    checkHuntingTargetAlert(listStores[0].val, listStores[0].name);
-                }
-
-            } catch (err) {
-                console.error("API Fetch Error", err);
-            } finally {
-                btn.innerHTML = \`<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span>Scan Market</span>\`;
-                btn.disabled = false;
-            }
-        }
-
-        function setMarketCondition(cond) {
-            currentMarketCond = cond;
-            const btnNew = document.getElementById('btn-cond-new'); 
-            const btnUsed = document.getElementById('btn-cond-used');
-            
-            const activeClass = "px-3 py-1 text-[10px] font-bold rounded-md bg-[#06b6d4] text-slate-900 transition-all shadow-sm";
-            const inactiveClass = "px-3 py-1 text-[10px] font-bold rounded-md text-slate-400 hover:text-white transition-all bg-transparent border border-slate-700";
-            
-            if(cond === 'new') { if(btnNew) { btnNew.className = activeClass; btnUsed.className = inactiveClass; } } 
-            else { if(btnNew) { btnNew.className = inactiveClass; btnUsed.className = "px-3 py-1 text-[10px] font-bold rounded-md bg-indigo-500 text-white transition-all shadow-sm"; } }
-            
-            scanLiveMarket();
-        }
-
-        // --- MATH CALCULATORS ---
-        function calculatePromo(basePrice) {
-            if(!basePrice) return;
-            let final = basePrice;
-            const promoCcEl = document.getElementById('promo-cc');
-            if (promoCcEl && promoCcEl.checked) final -= 500000;
-            const promoCbEl = document.getElementById('promo-cb');
-            if (promoCbEl && promoCbEl.checked) final -= 300000;
-            
-            const pEl = document.getElementById('promo-final-price');
-            if(pEl) pEl.innerText = formatterIDR.format(final);
-        }
-
-        function calculateTCO(buyPrice) {
-            if(!buyPrice) return;
-            const sell = buyPrice * 0.45; // Standard 3-year depreciation
-            const e1 = document.getElementById('tco-beli'); if(e1) e1.innerText = formatterIDR.format(buyPrice);
-            const e2 = document.getElementById('tco-jual'); if(e2) e2.innerText = formatterIDR.format(sell);
-            const e3 = document.getElementById('tco-daily'); if(e3) e3.innerText = \`\${formatterIDR.format((buyPrice - sell) / (3 * 365))} / Hari\`;
-        }
-        
-        function calculateTradeIn() {
-            const pricing = globalDeviceDB[activeDevice].pricing['Base'];
-            const multiplier = getStorageMultiplier(currentStorage);
-            const price = Math.round(pricing.historyNew[pricing.historyNew.length - 1] * multiplier);
-            
-            const tModel = document.getElementById('tradein-model');
-            if(!tModel) return;
-            const tradeValue = parseFloat(tModel.value);
-            
-            const tRes = document.getElementById('tradein-result');
-            if(tRes) tRes.innerText = formatterIDR.format(Math.max(0, price - tradeValue));
         }
 
         // --- PLANNER SAVINGS (BRANKAS) ---
@@ -1413,31 +940,33 @@
         }
 
         function calculateNabungRequirement() {
-            const pricing = globalDeviceDB[activeDevice].pricing['Base'];
+            const meta = globalDeviceDB[activeDevice];
             const multiplier = getStorageMultiplier(currentStorage);
-            const targetVal = Math.round(pricing.historyUsed[pricing.historyUsed.length - 1] * multiplier * 0.88); 
+            const targetVal = Math.round(meta.historyUsed[meta.historyUsed.length - 1] * multiplier * 0.88); 
             
             const remainingVal = Math.max(0, targetVal - savingsBalance);
             const today = new Date();
             const targetDate = new Date(targetBirthdayDate);
             const daysLeft = Math.max(1, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
             
-            const sFreq = document.getElementById('savings-frequency');
-            if(!sFreq) return;
-            const freq = sFreq.value;
-            const sSkip = document.getElementById('savings-skip-weekends');
-            const skipWeekends = sSkip ? sSkip.checked : false;
+            const freqEl = document.getElementById('savings-frequency');
+            if (!freqEl) return;
+            const freq = freqEl.value;
+            
+            const skipWeekendsEl = document.getElementById('savings-skip-weekends');
+            const skipWeekends = skipWeekendsEl ? skipWeekendsEl.checked : false;
             
             let divisor = daysLeft;
-            const fDisp = document.getElementById('savings-freq-display');
-            if(fDisp) fDisp.innerText = 'hari';
+            
+            const freqDisplayEl = document.getElementById('savings-freq-display');
+            if (freqDisplayEl) freqDisplayEl.innerText = 'hari';
             
             if (freq === 'mingguan') {
                 divisor = Math.max(1, daysLeft / 7);
-                if(fDisp) fDisp.innerText = 'minggu';
+                if (freqDisplayEl) freqDisplayEl.innerText = 'minggu';
             } else if (freq === 'bulanan') {
                 divisor = Math.max(1, daysLeft / 30);
-                if(fDisp) fDisp.innerText = 'bulan';
+                if (freqDisplayEl) freqDisplayEl.innerText = 'bulan';
             } else {
                 if(skipWeekends) {
                     let workDays = 0; let tempDate = new Date();
@@ -1447,22 +976,25 @@
                         tempDate.setDate(tempDate.getDate() + 1);
                     }
                     divisor = Math.max(1, workDays);
-                    if(fDisp) fDisp.innerText = 'hari kerja';
+                    if (freqDisplayEl) freqDisplayEl.innerText = 'hari kerja';
                 }
             }
-            const res = document.getElementById('savings-needed-result');
-            if(res) res.innerText = formatterIDR.format(Math.round(remainingVal / divisor));
+            
+            const neededResultEl = document.getElementById('savings-needed-result');
+            if (neededResultEl) {
+                neededResultEl.innerText = formatterIDR.format(Math.round(remainingVal / divisor));
+            }
         }
 
         function processDeposit() {
             const inputEl = document.getElementById('deposit-input');
-            if(!inputEl) return;
+            if (!inputEl) return;
             const amount = parseFloat(inputEl.value);
             if(isNaN(amount) || amount <= 0) return;
 
             savingsBalance += amount;
             const now = new Date();
-            const timeStr = \`\${now.getDate()}/\${now.getMonth()+1} \${now.getHours()}:\${now.getMinutes().toString().padStart(2, '0')}\`;
+            const timeStr = `${now.getDate()}/${now.getMonth()+1} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
             
             savingsHistory.unshift({ amount, date: timeStr });
             if(savingsHistory.length > 20) savingsHistory.pop(); 
@@ -1472,42 +1004,60 @@
             calculateNabungRequirement();
             inputEl.value = ''; 
             
+            // Pop float animation
             const container = document.getElementById('deposit-container');
-            if(container) {
+            if (container) {
                 const floatingText = document.createElement('div');
                 floatingText.className = 'floating-money'; 
                 floatingText.innerText = '+ ' + formatterIDR.format(amount);
-                floatingText.style.left = '50%'; floatingText.style.top = '-20px';
+                floatingText.style.left = '50%'; 
+                floatingText.style.top = '-20px';
                 container.appendChild(floatingText); 
                 setTimeout(() => { floatingText.remove(); }, 1500);
             }
         }
 
         function updateSavingsUI() {
-            const pricing = globalDeviceDB[activeDevice].pricing['Base'];
+            const meta = globalDeviceDB[activeDevice];
             const multiplier = getStorageMultiplier(currentStorage);
-            const targetVal = Math.round(pricing.historyUsed[pricing.historyUsed.length - 1] * multiplier * 0.88); 
+            const targetVal = Math.round(meta.historyUsed[meta.historyUsed.length - 1] * multiplier * 0.88);
             
             let pct = Math.min(100, (savingsBalance / targetVal) * 100);
             
-            const s1 = document.getElementById('brankas-saldo'); if(s1) s1.innerText = formatterIDR.format(savingsBalance);
-            const s2 = document.getElementById('brankas-target'); if(s2) s2.innerText = formatterIDR.format(targetVal);
-            const s3 = document.getElementById('brankas-bar'); if(s3) s3.style.width = \`\${pct}%\`;
-            const s4 = document.getElementById('brankas-pct'); if(s4) s4.innerText = \`\${pct.toFixed(1)}% Tercapai\`;
+            const brankasSaldoEl = document.getElementById('brankas-saldo');
+            if (brankasSaldoEl) brankasSaldoEl.innerText = formatterIDR.format(savingsBalance);
+            
+            const brankasTargetEl = document.getElementById('brankas-target');
+            if (brankasTargetEl) brankasTargetEl.innerText = formatterIDR.format(targetVal);
+            
+            const brankasBarEl = document.getElementById('brankas-bar');
+            if (brankasBarEl) brankasBarEl.style.width = `${pct}%`;
+            
+            const brankasPctEl = document.getElementById('brankas-pct');
+            if (brankasPctEl) brankasPctEl.innerText = `${pct.toFixed(1)}% Tercapai`;
             
             const daysLeft = Math.max(0, Math.ceil((new Date(targetBirthdayDate) - new Date()) / (1000 * 60 * 60 * 24)));
-            const s5 = document.getElementById('brankas-sisa-waktu'); if(s5) s5.innerText = \`Sisa: \${daysLeft} Hari\`;
+            const brankasSisaWaktuEl = document.getElementById('brankas-sisa-waktu');
+            if (brankasSisaWaktuEl) brankasSisaWaktuEl.innerText = `Sisa: ${daysLeft} Hari`;
 
-            const h1 = document.getElementById('home-saldo-text'); if(h1) h1.innerText = formatterIDR.format(savingsBalance);
-            const h2 = document.getElementById('home-target-text'); if(h2) h2.innerText = (targetVal / 1000000).toFixed(1) + 'Jt';
-            const h3 = document.getElementById('home-progress-bar'); if(h3) h3.style.width = \`\${pct}%\`;
-            const h4 = document.getElementById('home-pct-text'); if(h4) h4.innerText = \`\${pct.toFixed(1)}% Terkumpul\`;
+            // Sync Home
+            const homeSaldoTextEl = document.getElementById('home-saldo-text');
+            if (homeSaldoTextEl) homeSaldoTextEl.innerText = formatterIDR.format(savingsBalance);
+            
+            const homeTargetTextEl = document.getElementById('home-target-text');
+            if (homeTargetTextEl) homeTargetTextEl.innerText = (targetVal / 1000000).toFixed(1) + 'Jt';
+            
+            const homeProgressBarEl = document.getElementById('home-progress-bar');
+            if (homeProgressBarEl) homeProgressBarEl.style.width = `${pct}%`;
+            
+            const homePctTextEl = document.getElementById('home-pct-text');
+            if (homePctTextEl) homePctTextEl.innerText = `${pct.toFixed(1)}% Terkumpul`;
 
             const list = document.getElementById('deposit-history-list'); 
-            if(list) {
+            if (list) {
                 list.innerHTML = '';
                 savingsHistory.forEach(item => {
-                    list.innerHTML += \`<div class="flex justify-between items-center bg-[#1e293b] p-2.5 rounded-lg text-xs border border-slate-700 mb-2"><span class="text-slate-400 font-bold">\${item.date}</span><span class="font-black text-emerald-400">+ \${formatterIDR.format(item.amount)}</span></div>\`;
+                    list.innerHTML += `<div class="flex justify-between items-center bg-[#1e293b] p-2.5 rounded-lg text-xs border border-slate-700 mb-2"><span class="text-slate-400 font-bold">${item.date}</span><span class="font-black text-emerald-400">+ ${formatterIDR.format(item.amount)}</span></div>`;
                 });
             }
         }
