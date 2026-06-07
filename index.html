@@ -6,6 +6,7 @@
     <title>BuyCopilot - Universal Tech Price Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
@@ -81,13 +82,108 @@
             0% { background-position: 0% 50%; }
             100% { background-position: 100% 50%; }
         }
+
+        /* Counter CSS inspired by React Bits */
+        .counter-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            overflow: hidden;
+            height: 1.2em;
+            line-height: 1.2em;
+        }
+        .counter-digit-wrapper {
+            position: relative;
+            width: 1ch;
+            font-variant-numeric: tabular-nums;
+            display: inline-block;
+            vertical-align: bottom;
+            overflow: hidden;
+            height: 1.2em;
+        }
+        .counter-digit-strip {
+            display: flex;
+            flex-direction: column;
+            transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            height: 12em; /* 10 digits * 1.2em */
+        }
+        .counter-digit-strip span {
+            display: block;
+            height: 1.2em;
+            text-align: center;
+        }
+        .counter-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 30%;
+            background: linear-gradient(to bottom, #1e293b, transparent);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .counter-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 30%;
+            background: linear-gradient(to top, #1e293b, transparent);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Magic Bento Card Styles */
+        .glass-panel, .home-grid-item {
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+            --glow-x: 50%;
+            --glow-y: 50%;
+            --glow-intensity: 0;
+            --glow-radius: 260px;
+            --glow-color-rgb: 6, 182, 212; /* Default: Cyan */
+        }
+
+        .glass-panel::after, .home-grid-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1.5px; /* Border thickness */
+            background: radial-gradient(
+                var(--glow-radius) circle at var(--glow-x) var(--glow-y),
+                rgba(var(--glow-color-rgb), calc(var(--glow-intensity) * 0.95)) 0%,
+                rgba(var(--glow-color-rgb), calc(var(--glow-intensity) * 0.3)) 30%,
+                transparent 60%
+            );
+            border-radius: inherit;
+            -webkit-mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask:
+                linear-gradient(#fff 0 0) content-box,
+                linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            z-index: 5;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 4;
+        }
     </style>
 </head>
-<body class="bg-[#050b14] text-slate-300 pb-24 md:pb-12 min-h-screen overflow-x-hidden selection:bg-[#06b6d4] selection:text-white" id="main-body">
+<body class="bg-black text-zinc-300 pb-24 md:pb-12 min-h-screen overflow-x-hidden selection:bg-white selection:text-black" id="main-body">
 
-    <div class="w-full bg-gradient-to-r from-rose-500 via-purple-500 to-indigo-500 text-white text-[10px] font-bold py-1 overflow-hidden whitespace-nowrap fixed top-0 z-[60]">
+    <div class="w-full bg-[#111] text-zinc-300 text-[10px] py-1 border-b border-zinc-800 overflow-hidden whitespace-nowrap fixed top-0 z-[60]">
         <div class="inline-block animate-ticker tracking-widest uppercase" id="live-ticker-text">
-            🔥 [LIVE ENGINE] Engine siap diintegrasikan dengan API --- 💰 Menunggu koneksi backend untuk data real-time E-Commerce
+            💡 Info: Model valuasi pasar selalu memperbarui estimasi penyusutan • Alert: Pasang target harga di Kalkulator untuk memantau rekor harga terendah
         </div>
     </div>
 
@@ -100,7 +196,7 @@
             <div class="flex items-center gap-4">
                 <div class="relative cursor-pointer group" onclick="resetUser()" title="Ubah Profil">
                     <img src="https://ui-avatars.com/api/?name=U&background=1e293b&color=06b6d4&rounded=true&bold=true" id="avatar-img-home" alt="User" class="w-14 h-14 rounded-full border-2 border-slate-700 shadow-md">
-                    <div class="absolute bottom-0 right-0 w-4 h-4 bg-cyan-500 border-2 border-[#050b14] rounded-full flex items-center justify-center text-[8px] text-slate-900 font-bold">✎</div>
+                    <div class="absolute bottom-0 right-0 w-4 h-4 bg-zinc-700 border-2 border-[#050b14] rounded-full flex items-center justify-center text-[8px] text-slate-900 font-bold">✎</div>
                 </div>
                 <div>
                     <p class="text-xs text-slate-400 font-medium tracking-wide">Hello,</p>
@@ -116,18 +212,17 @@
             <div class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-500">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
             </div>
-            <input type="text" id="device-search-home" placeholder="Ganti HP (Ketik: iPhone 12, S21 Ultra... Batas: 2020)" class="w-full bg-[#131b2f] border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-white font-medium text-sm focus:outline-none focus:border-cyan-500 transition-all shadow-lg" autocomplete="off">
+            <input type="text" id="device-search-home" placeholder="Ganti HP (Ketik: iPhone 12, S21 Ultra... Batas: 2020)" class="w-full bg-[#111] border border-slate-700 rounded-2xl py-3.5 pl-12 pr-4 text-white font-medium text-sm focus:outline-none focus:border-cyan-500 transition-all shadow-lg" autocomplete="off">
             <div id="home-search-results" class="search-results hide-scroll w-full"></div>
         </div>
 
         <!-- Hero Card: Target Savings & Goal -->
         <div class="glass-panel rounded-3xl p-6 shadow-xl relative overflow-hidden mb-6 cursor-pointer transform transition-transform hover:scale-[1.02]" onclick="navigateTo('dashboard', 'card-brankas')">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-[#06b6d4]/15 rounded-full blur-3xl"></div>
             <div class="flex justify-between items-start mb-2 relative z-10">
-                <div class="bg-cyan-500/20 text-[#06b6d4] border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase flex items-center gap-1.5">
-                    <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></div> Target Beli: <span id="home-target-date-display">...</span>
+                <div class="bg-zinc-700/20 text-white border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase flex items-center gap-1.5">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div> Target Beli: <span id="home-target-date-display">...</span>
                 </div>
-                <div class="text-white text-xs font-bold bg-[#1e293b] border border-slate-700 px-2.5 py-1 rounded-lg max-w-[120px] truncate text-center" id="home-device-model">Target Device</div>
+                <div class="text-white text-xs font-bold bg-[#111] border border-slate-700 px-2.5 py-1 rounded-lg max-w-[120px] truncate text-center" id="home-device-model">Target Device</div>
             </div>
             
             <h3 class="text-slate-400 text-xs font-bold uppercase mt-4 mb-1">Total Tabungan Brankas</h3>
@@ -136,58 +231,58 @@
                 <p class="text-sm text-slate-500 font-bold mb-1">/ <span id="home-target-text">...</span></p>
             </div>
 
-            <div class="w-full h-2 bg-[#050b14] rounded-full overflow-hidden mb-2">
+            <div class="w-full h-2 bg-black rounded-full overflow-hidden mb-2">
                 <div id="home-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 to-[#06b6d4] transition-all duration-1000 w-0"></div>
             </div>
             <div class="flex justify-between text-[10px] font-bold text-slate-400">
                 <span id="home-pct-text">0% Terkumpul</span>
-                <span class="text-[#06b6d4] hover:underline">Buka Brankas Nabung ➔</span>
+                <span class="text-white hover:underline">Buka Brankas Nabung ➔</span>
             </div>
         </div>
 
         <!-- System Source Info -->
         <div class="bg-gradient-to-r from-emerald-900/40 to-slate-800/40 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between mb-8">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-400 text-xs font-black">
+                <div class="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center text-zinc-300 text-xs font-black">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 </div>
                 <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase">Data Source Engine</p>
-                    <p class="text-xs font-black text-white">Local IDR Web Scraper & Sheets API</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Sistem Intelijen</p>
+                    <p class="text-xs font-black text-white">Live Market Scan</p>
                 </div>
             </div>
-            <div class="text-emerald-400 text-[10px] font-bold">API Ready</div>
+            <div class="text-zinc-300 text-[10px] font-bold">Online</div>
         </div>
 
         <!-- App Grid Menu -->
         <h2 class="text-xs font-black text-white mb-4 px-2 uppercase tracking-widest">Eksplorasi Pasar & Tools</h2>
         <div class="grid grid-cols-2 gap-4">
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-cyan-500/50" onclick="navigateTo('dashboard', 'card-specs')">
-                <div class="w-10 h-10 bg-[#3b82f6]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#3b82f6]">📱</div>
+            <div class="home-grid-item tilt-enabled bg-[#111] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-white/50" onclick="navigateTo('dashboard', 'card-specs')">
+                <div class="w-10 h-10 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl shadow-inner text-white">📱</div>
                 <div>
                     <h3 class="text-white font-bold text-sm">Spesifikasi</h3>
                     <p class="text-[10px] text-slate-400">Info Detail & Harga</p>
                 </div>
             </div>
             
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-purple-500/50" onclick="navigateTo('dashboard', 'card-history')">
-                <div class="w-10 h-10 bg-[#8b5cf6]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#8b5cf6]">📈</div>
+            <div class="home-grid-item tilt-enabled bg-[#111] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-zinc-500" onclick="navigateTo('dashboard', 'card-history')">
+                <div class="w-10 h-10 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl shadow-inner text-white">📈</div>
                 <div>
                     <h3 class="text-white font-bold text-sm">Grafik Historis</h3>
                     <p class="text-[10px] text-slate-400">Pola Fluktuasi Pasar</p>
                 </div>
             </div>
 
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-emerald-500/50" onclick="navigateTo('dashboard', 'card-ecommerce')">
-                <div class="w-10 h-10 bg-[#10b981]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#10b981]">🛒</div>
+            <div class="home-grid-item tilt-enabled bg-[#111] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-zinc-500" onclick="navigateTo('dashboard', 'card-ecommerce')">
+                <div class="w-10 h-10 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl shadow-inner text-white">🛒</div>
                 <div>
                     <h3 class="text-white font-bold text-sm">Live E-Commerce</h3>
                     <p class="text-[10px] text-slate-400">Tokped, Shopee, dll</p>
                 </div>
             </div>
 
-            <div class="home-grid-item bg-[#1e293b] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-rose-500/50" onclick="navigateTo('dashboard', 'card-tco')">
-                <div class="w-10 h-10 bg-[#f43f5e]/20 rounded-2xl flex items-center justify-center text-xl shadow-inner text-[#f43f5e]">💸</div>
+            <div class="home-grid-item tilt-enabled bg-[#111] p-5 rounded-3xl border border-slate-700 flex flex-col justify-between h-36 cursor-pointer transition-all hover:bg-slate-800 hover:border-zinc-500" onclick="navigateTo('dashboard', 'card-tco')">
+                <div class="w-10 h-10 bg-zinc-800 rounded-2xl flex items-center justify-center text-xl shadow-inner text-white">💸</div>
                 <div>
                     <h3 class="text-white font-bold text-sm">TCO & Tukar Tambah</h3>
                     <p class="text-[10px] text-slate-400">Hitung Biaya Pemakaian</p>
@@ -200,19 +295,18 @@
         
         <!-- Header -->
         <div class="mb-6 flex justify-between items-center glass-panel p-4 rounded-3xl shadow-xl relative overflow-hidden" id="hero-section">
-            <div class="absolute top-0 right-1/4 w-32 h-32 bg-[#06b6d4]/10 rounded-full blur-3xl"></div>
             <div class="flex items-center gap-4 relative z-10">
-                <button onclick="navigateTo('home')" class="w-10 h-10 bg-[#050b14] rounded-full flex items-center justify-center text-slate-400 hover:text-white transition shadow-inner cursor-pointer z-50">
+                <button onclick="navigateTo('home')" class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-slate-400 hover:text-white transition shadow-inner cursor-pointer z-50">
                     <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                 </button>
                 <div>
-                    <p class="text-[9px] text-[#06b6d4] font-extrabold uppercase tracking-widest flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span> Tracking Aktif</p>
+                    <p class="text-[9px] text-white font-extrabold uppercase tracking-widest flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Tracking Aktif</p>
                     <p class="text-lg font-black text-white" id="dashboard-device-name-display">...</p>
                 </div>
             </div>
             
-            <div class="flex items-center gap-2 bg-[#050b14]/80 p-1.5 rounded-xl border border-slate-800 relative z-10">
-                <button onclick="setStorage('Base')" id="tab-Base" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#06b6d4] text-slate-900 transition-all">Base</button>
+            <div class="flex items-center gap-2 bg-black/80 p-1.5 rounded-xl border border-slate-800 relative z-10">
+                <button onclick="setStorage('Base')" id="tab-Base" class="px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-black text-slate-900 transition-all">Base</button>
                 <button onclick="setStorage('Mid')" id="tab-Mid" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all">Mid</button>
                 <button onclick="setStorage('Max')" id="tab-Max" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all hidden sm:block">Max</button>
             </div>
@@ -227,22 +321,21 @@
                 
                 <h3 class="text-center text-sm font-bold text-white mt-8 mb-4">Informasi Spesifikasi Detail <span id="lbl-release-year" class="ml-2 text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-normal">Dirilis 2025</span></h3>
                 
-                <div class="flex-1 bg-[#050b14]/50 rounded-2xl border border-slate-800 p-4 overflow-y-auto max-h-[200px] hide-scroll relative z-10">
+                <div class="flex-1 bg-black/50 rounded-2xl border border-slate-800 p-4 overflow-y-auto max-h-[200px] hide-scroll relative z-10">
                     <ul class="space-y-4 text-sm" id="detailed-specs-list"></ul>
                 </div>
             </div>
 
             <!-- Price Summary Widget -->
             <div id="card-price-summary" class="glass-panel rounded-3xl p-6 shadow-xl flex flex-col justify-center relative">
-                <div class="absolute -right-5 -top-5 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl"></div>
                 <h2 class="text-xl font-black text-white mb-1">Harga Pasaran Saat Ini</h2>
                 <p class="text-xs text-slate-400 mb-6">Sumber: Analisis rata-rata E-Commerce Lokal.</p>
                 
-                <div class="bg-[#050b14] p-5 rounded-2xl border border-slate-800 mb-4 text-center relative overflow-hidden group">
+                <div class="bg-black p-5 rounded-2xl border border-slate-800 mb-4 text-center relative overflow-hidden group">
                     <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/0 via-cyan-500/5 to-cyan-500/0 transform -translate-x-full group-hover:animate-[ticker_1.5s_ease-in-out]"></div>
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Estimasi Harga Baru (Lokal)</p>
-                    <p class="text-3xl font-black text-[#06b6d4]" id="summary-cur-idr">-</p>
-                    <p class="text-[10px] text-emerald-400 mt-1 font-bold"><span id="storage-multiplier-info">Varian Base</span></p>
+                    <p class="text-3xl font-black text-white" id="summary-cur-idr">-</p>
+                    <p class="text-[10px] text-zinc-300 mt-1 font-bold"><span id="storage-multiplier-info">Varian Base</span></p>
                 </div>
                 
                 <div>
@@ -272,7 +365,7 @@
                 <div class="flex justify-between items-center mb-2">
                     <h2 class="text-sm font-black text-white flex items-center gap-2">📈 Riwayat Harga Fluktuatif (IDR)</h2>
                     <div class="flex gap-4 text-xs font-medium">
-                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-[#06b6d4]"></span> New</div>
+                        <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-white text-black"></span> New</div>
                         <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-[#6366f1]"></span> Second</div>
                     </div>
                 </div>
@@ -303,8 +396,8 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-base font-black text-white flex items-center gap-2">🛒 E-Commerce Radar</h2>
                     <div class="flex items-center gap-3">
-                        <div class="flex items-center gap-1 bg-[#050b14] p-1 rounded-lg border border-slate-700 hidden sm:flex">
-                            <button onclick="setMarketCondition('new')" id="btn-cond-new" class="px-3 py-1 text-[10px] font-bold rounded-md bg-[#06b6d4] text-slate-900 transition-all shadow-sm">Baru</button>
+                        <div class="flex items-center gap-1 bg-black p-1 rounded-lg border border-slate-700 hidden sm:flex">
+                            <button onclick="setMarketCondition('new')" id="btn-cond-new" class="px-3 py-1 text-[10px] font-bold rounded-md bg-white text-black text-slate-900 transition-all shadow-sm">Baru</button>
                             <button onclick="setMarketCondition('used')" id="btn-cond-used" class="px-3 py-1 text-[10px] font-bold rounded-md text-slate-400 hover:text-white transition-all bg-transparent">Second</button>
                         </div>
                         <button onclick="scanLiveMarket()" id="btn-scan-market" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1">
@@ -314,8 +407,8 @@
                     </div>
                 </div>
                 
-                <div class="flex sm:hidden items-center gap-1 bg-[#050b14] p-1 rounded-lg border border-slate-700 mb-4 w-full">
-                    <button onclick="setMarketCondition('new')" id="btn-cond-new-mob" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-[#06b6d4] text-slate-900 transition-all shadow-sm">Baru</button>
+                <div class="flex sm:hidden items-center gap-1 bg-black p-1 rounded-lg border border-slate-700 mb-4 w-full">
+                    <button onclick="setMarketCondition('new')" id="btn-cond-new-mob" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-white text-black text-slate-900 transition-all shadow-sm">Baru</button>
                     <button onclick="setMarketCondition('used')" id="btn-cond-used-mob" class="flex-1 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all bg-transparent">Second</button>
                 </div>
                 
@@ -330,10 +423,10 @@
                     <h3 class="text-xs font-bold text-white mb-2 flex items-center gap-2">🎯 Fitur Hunting Harga (Auto-Alert API)</h3>
                     <p class="text-[10px] text-slate-400 mb-3">Sistem akan memberi notifikasi nyata jika harga hasil Scan Market menyentuh atau berada di bawah target Anda.</p>
                     <div class="flex gap-2">
-                        <input type="number" id="hunting-price-input" placeholder="Set target harga (Misal: 13900000)" class="flex-1 bg-[#050b14] border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#06b6d4]">
-                        <button onclick="setHuntingTarget()" class="bg-[#06b6d4] hover:bg-[#0891b2] text-slate-900 px-4 py-2 rounded-lg text-xs font-bold transition-colors">Set Target</button>
+                        <input type="number" id="hunting-price-input" placeholder="Set target harga (Misal: 13900000)" class="flex-1 bg-black border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#06b6d4]">
+                        <button onclick="setHuntingTarget()" class="bg-white text-black hover:bg-[#0891b2] text-slate-900 px-4 py-2 rounded-lg text-xs font-bold transition-colors">Set Target</button>
                     </div>
-                    <p id="hunting-status" class="text-[10px] font-bold text-emerald-400 mt-2 hidden">Target aktif: Rp ...</p>
+                    <p id="hunting-status" class="text-[10px] font-bold text-zinc-300 mt-2 hidden">Target aktif: Rp ...</p>
                 </div>
             </div>
 
@@ -342,13 +435,13 @@
                 <div class="glass-panel rounded-3xl p-6 shadow-xl">
                     <h2 class="text-base font-black text-white mb-3">🎟️ Voucher Stacker Lokal</h2>
                     <div class="space-y-2 mb-4">
-                        <label class="flex items-center gap-3 bg-[#050b14] p-3 rounded-xl border border-slate-700 cursor-pointer hover:border-cyan-500 transition">
+                        <label class="flex items-center gap-3 bg-black p-3 rounded-xl border border-slate-700 cursor-pointer hover:border-white transition">
                             <input type="checkbox" id="promo-cc" class="custom-checkbox w-4 h-4 rounded border-slate-500 bg-slate-800" onchange="calculatePromo()">
-                            <span class="text-xs font-bold text-slate-300">Diskon Bank CC <span class="text-cyan-400 block">-Rp 500.000</span></span>
+                            <span class="text-xs font-bold text-slate-300">Diskon Bank CC <span class="text-white block">-Rp 500.000</span></span>
                         </label>
-                        <label class="flex items-center gap-3 bg-[#050b14] p-3 rounded-xl border border-slate-700 cursor-pointer hover:border-emerald-500 transition">
+                        <label class="flex items-center gap-3 bg-black p-3 rounded-xl border border-slate-700 cursor-pointer hover:border-emerald-500 transition">
                             <input type="checkbox" id="promo-cb" class="custom-checkbox w-4 h-4 rounded border-slate-500 bg-slate-800" onchange="calculatePromo()">
-                            <span class="text-xs font-bold text-slate-300">Market Cashback <span class="text-emerald-400 block">-Rp 300.000</span></span>
+                            <span class="text-xs font-bold text-slate-300">Market Cashback <span class="text-zinc-300 block">-Rp 300.000</span></span>
                         </label>
                     </div>
                     <div class="border-t border-slate-700 pt-3 flex justify-between items-center">
@@ -373,9 +466,9 @@
                     </p>
                 </div>
                 
-                <div class="bg-[#050b14] p-5 rounded-2xl border border-slate-800 mb-6">
+                <div class="bg-black p-5 rounded-2xl border border-slate-800 mb-6">
                     <div class="flex justify-between items-end mb-4">
-                        <div><p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Saldo Tersimpan</p><h3 class="text-3xl font-black text-emerald-400" id="brankas-saldo">Rp 0</h3></div>
+                        <div><p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Saldo Tersimpan</p><h3 class="text-3xl font-black text-zinc-300" id="brankas-saldo">Rp 0</h3></div>
                         <div class="text-right"><p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Target Harga HP</p><p class="text-sm font-bold text-white" id="brankas-target">-</p></div>
                     </div>
                     <div class="w-full h-3 bg-slate-800 rounded-full overflow-hidden shadow-inner mb-2">
@@ -386,12 +479,12 @@
                     </div>
                 </div>
 
-                <div class="bg-[#131b2f] p-4 rounded-2xl border border-slate-800 mb-6">
-                    <h3 class="text-xs font-bold text-[#06b6d4] uppercase mb-3">Planner & Hitungan Nabung</h3>
+                <div class="bg-[#111] p-4 rounded-2xl border border-slate-800 mb-6">
+                    <h3 class="text-xs font-bold text-white uppercase mb-3">Planner & Hitungan Nabung</h3>
                     <div class="grid grid-cols-2 gap-4 text-xs mb-3">
                         <div>
                             <p class="text-slate-400 mb-1">Metode Setor:</p>
-                            <select id="savings-frequency" class="w-full bg-[#050b14] border border-slate-700 rounded-lg p-2 text-white" onchange="calculateNabungRequirement()">
+                            <select id="savings-frequency" class="w-full bg-black border border-slate-700 rounded-lg p-2 text-white" onchange="calculateNabungRequirement()">
                                 <option value="harian">Setiap Hari</option>
                                 <option value="mingguan">Setiap Minggu</option>
                                 <option value="bulanan">Setiap Bulan</option>
@@ -405,13 +498,13 @@
                             </label>
                         </div>
                     </div>
-                    <p class="text-xs text-white bg-[#050b14] p-3 rounded-xl text-center border border-slate-800 font-bold">
-                        Anda harus menabung: <span class="text-emerald-400" id="savings-needed-result">...</span> / <span class="capitalize" id="savings-freq-display">hari</span>
+                    <p class="text-xs text-white bg-black p-3 rounded-xl text-center border border-slate-800 font-bold">
+                        Anda harus menabung: <span class="text-zinc-300" id="savings-needed-result">...</span> / <span class="capitalize" id="savings-freq-display">hari</span>
                     </p>
                 </div>
 
                 <div class="flex gap-3 mb-4" id="deposit-container">
-                    <input type="number" id="deposit-input" placeholder="Setor manual (Misal: 8000)" class="flex-1 bg-[#050b14] border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-emerald-500 transition-all">
+                    <input type="number" id="deposit-input" placeholder="Setor manual (Misal: 8000)" class="flex-1 bg-black border border-slate-700 rounded-xl px-4 py-3 text-white font-bold text-sm focus:outline-none focus:border-emerald-500 transition-all">
                     <button onclick="processDeposit()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black px-4 py-3 rounded-xl transition-transform active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.4)]">SETOR</button>
                 </div>
                 <div class="h-32 overflow-y-auto hide-scroll space-y-2 pr-2" id="deposit-history-list"></div>
@@ -423,14 +516,14 @@
                 <div id="card-tco" class="glass-panel rounded-3xl p-6 shadow-xl">
                     <h2 class="text-base font-black text-white mb-2">📅 Total Cost of Ownership (TCO) Calculator</h2>
                     <p class="text-xs text-slate-400 mb-4">Menghitung depresiasi riil harian perangkat berdasarkan durasi pakai Anda (Asumsi 3 Tahun).</p>
-                    <div class="bg-[#050b14] p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+                    <div class="bg-black p-4 rounded-xl border border-slate-700 flex justify-between items-center">
                         <div class="text-slate-400 text-xs space-y-1">
                             <p>Harga Beli: <span id="tco-beli" class="text-white font-bold">-</span></p>
                             <p>Prediksi Jual (Sisa): <span id="tco-jual" class="text-white font-bold">-</span></p>
                         </div>
                         <div class="text-right">
                             <p class="text-[10px] font-bold text-slate-500 uppercase">Estimasi Biaya Harian</p>
-                            <p class="text-xl font-black text-[#06b6d4]" id="tco-daily">-</p>
+                            <p class="text-xl font-black text-white" id="tco-daily">-</p>
                         </div>
                     </div>
                 </div>
@@ -438,15 +531,15 @@
                 <div class="glass-panel rounded-3xl p-6 shadow-xl">
                     <h2 class="text-base font-black text-white mb-3">🔄 Smart Trade-In Estimator</h2>
                     <div class="flex gap-2 mb-3">
-                        <select id="tradein-model" class="flex-1 bg-[#050b14] border border-slate-700 rounded-lg p-2.5 text-xs text-white" onchange="calculateTradeIn()">
+                        <select id="tradein-model" class="flex-1 bg-black border border-slate-700 rounded-lg p-2.5 text-xs text-white" onchange="calculateTradeIn()">
                             <option value="0">Pilih Device Lama Anda</option>
                             <option value="5000000">Mid-range Device (~Rp 5.000.000)</option>
                             <option value="9000000">Old Flagship (~Rp 9.000.000)</option>
                             <option value="12000000">Recent Flagship (~Rp 12.000.000)</option>
                         </select>
                     </div>
-                    <div class="bg-[#050b14] p-3 rounded-xl border border-emerald-500/30 flex justify-between items-center">
-                        <span class="text-xs font-bold text-emerald-400">Sisa Out of Pocket:</span>
+                    <div class="bg-black p-3 rounded-xl border border-emerald-500/30 flex justify-between items-center">
+                        <span class="text-xs font-bold text-zinc-300">Sisa Out of Pocket:</span>
                         <span class="text-lg font-black text-white" id="tradein-result">-</span>
                     </div>
                 </div>
@@ -456,8 +549,8 @@
     </div>
 
     <!-- Bottom Mobile Navigation Bar -->
-    <div class="fixed bottom-0 left-0 right-0 bg-[#050b14]/95 border-t border-slate-800 pb-safe md:hidden z-[90] flex justify-around px-2 py-3 backdrop-blur-xl">
-        <button onclick="navigateTo('home')" class="flex flex-col items-center text-[#06b6d4]">
+    <div class="fixed bottom-0 left-0 right-0 bg-black/95 border-t border-slate-800 pb-safe md:hidden z-[90] flex justify-around px-2 py-3 backdrop-blur-xl">
+        <button onclick="navigateTo('home')" class="flex flex-col items-center text-white">
             <svg class="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 0h6"></path></svg>
             <span class="text-[9px] font-bold">Home</span>
         </button>
@@ -582,9 +675,13 @@
 
         // --- DIRECT SERVERLESS GSM ARENA SCRAPER WITH CORS FALLBACK ---
         async function fetchWithProxy(targetUrl) {
+            // Tambahkan cache-buster ke targetUrl agar proxy/CDN tidak me-cache response lama
+            const buster = `_nocache=${Date.now()}`;
+            const targetUrlWithBuster = targetUrl + (targetUrl.includes('?') ? '&' : '?') + buster;
+
             // Coba corsproxy.io terlebih dahulu dengan parameter query standard ?url=
             try {
-                const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+                const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrlWithBuster)}`;
                 const res = await fetch(proxyUrl);
                 if (res.ok) {
                     return await res.text();
@@ -593,7 +690,7 @@
                 console.warn("corsproxy.io standard format failed, trying direct suffix", e);
                 try {
                     // Fallback format langsung: corsproxy.io/https://...
-                    const proxyUrlDirect = `https://corsproxy.io/${targetUrl}`;
+                    const proxyUrlDirect = `https://corsproxy.io/${targetUrlWithBuster}`;
                     const res = await fetch(proxyUrlDirect);
                     if (res.ok) return await res.text();
                 } catch (e2) {
@@ -602,7 +699,7 @@
             }
             
             // Fallback ke allorigins.win (kembalian JSON dibungkus field contents)
-            const alloriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+            const alloriginsUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrlWithBuster)}`;
             const res = await fetch(alloriginsUrl);
             if (!res.ok) throw new Error("All CORS proxies failed");
             const json = await res.json();
@@ -611,6 +708,28 @@
 
         async function searchGSMArena(query) {
             try {
+                // Cobalah panggil backend Python lokal terlebih dahulu (menghindari CORS dan block browser)
+                try {
+                    const res = await fetch(`http://localhost:3000/api/search?q=${encodeURIComponent(query)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                            return data.map(item => ({
+                                name: item.name,
+                                brand: item.brand,
+                                url: item.url,
+                                img: item.img,
+                                specs: item.specs,         // Simpan spesifikasi agar tidak perlu fetch ulang
+                                releaseYear: item.releaseYear,
+                                source: 'online'
+                            }));
+                        }
+                    }
+                } catch (backendErr) {
+                    console.warn("[SYSTEM] Backend search failed or offline, falling back to client-side proxies:", backendErr.message);
+                }
+
+                // Fallback: Scraping lewat browser client-side menggunakan CORS Proxy (lambat & rawan diblokir)
                 const url = `https://www.gsmarena.com/results.php3?sQuickText=${encodeURIComponent(query)}`;
                 const html = await fetchWithProxy(url);
                 
@@ -791,6 +910,7 @@
             loadSavingsData();
             updateHomeDashboard();
             navigateTo('home');
+            initMagicBento();
 
             globalNewsFeed = await fetchMarketNews();
             
@@ -832,10 +952,10 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const borderCls = isAlert ? 'border-rose-500/50 shadow-[0_5px_20px_rgba(244,63,94,0.3)]' : 'border-[#06b6d4]/50 shadow-[0_5px_20px_rgba(6,182,212,0.2)]';
-            const iconBgCls = isAlert ? 'bg-rose-500/20 text-rose-400' : 'bg-[#06b6d4]/20 text-cyan-400';
-            const pingCls = isAlert ? 'bg-cyan-400' : 'bg-cyan-400';
+            const iconBgCls = isAlert ? 'bg-rose-500/20 text-rose-400' : 'bg-white text-black/20 text-white';
+            const pingCls = isAlert ? 'bg-white' : 'bg-white';
 
-            toast.className = `bg-[#1e293b]/95 backdrop-blur-md border ${borderCls} p-4 rounded-xl flex items-center gap-3 toast-enter max-w-[300px] pointer-events-auto mb-3`;
+            toast.className = `bg-[#111]/95 backdrop-blur-md border ${borderCls} p-4 rounded-xl flex items-center gap-3 toast-enter max-w-[300px] pointer-events-auto mb-3`;
             toast.innerHTML = `
                 <div class="w-8 h-8 rounded-full ${iconBgCls} flex items-center justify-center shrink-0">
                     <span class="animate-ping absolute w-8 h-8 rounded-full ${pingCls} opacity-20"></span>
@@ -874,7 +994,8 @@
                 resultsBox.classList.add('active');
 
                 debounceTimer = setTimeout(async () => {
-                    const queryClean = query.toLowerCase().replace(/\s+/g, '');
+                    const activeQuery = query.trim();
+                    const queryClean = activeQuery.toLowerCase().replace(/\s+/g, '');
                     let matches = [];
                     
                     // 1. Search local DB first
@@ -886,9 +1007,20 @@
                     // 2. Search GSM Arena if matches are low
                     if (matches.length < 3) {
                         try {
-                            const apiResults = await searchGSMArena(query);
+                            const apiResults = await searchGSMArena(activeQuery);
+                            // Pecah query menjadi beberapa kata kunci untuk validasi kecocokan
+                            const queryKeywords = activeQuery.toLowerCase().split(/\s+/).filter(k => k.length > 0);
+                            
                             apiResults.forEach(res => {
-                                if (!matches.some(m => m.data.name.toLowerCase() === res.name.toLowerCase())) {
+                                const nameLower = res.name.toLowerCase();
+                                const brandLower = (res.brand || '').toLowerCase();
+                                
+                                // Pastikan nama HP atau brand mengandung semua kata kunci dari pencarian
+                                const matchesAllKeywords = queryKeywords.every(keyword => 
+                                    nameLower.includes(keyword) || brandLower.includes(keyword)
+                                );
+                                
+                                if (matchesAllKeywords && !matches.some(m => m.data.name.toLowerCase() === res.name.toLowerCase())) {
                                     const code = 'online_' + res.name.toLowerCase().replace(/[^a-z0-9]/g, '');
                                     matches.push({
                                         code: code,
@@ -908,6 +1040,11 @@
                         }
                     }
 
+                    // Validasi race condition: abaikan jika input user sudah berubah
+                    if (input.value.trim() !== activeQuery) {
+                        return;
+                    }
+
                     resultsBox.innerHTML = '';
                     if(matches.length > 0) {
                         matches.forEach(match => {
@@ -919,7 +1056,7 @@
                                 : `GSM Arena • Klik untuk sync specs & grafik`;
                                 
                             div.innerHTML = `
-                                <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-cyan-400">${badgeChar}</div>
+                                <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold text-white">${badgeChar}</div>
                                 <div>
                                     <p class="text-sm font-bold text-white">${match.data.name}</p>
                                     <p class="text-[10px] text-slate-500">${specsDesc}</p>
@@ -932,7 +1069,15 @@
                                 if (match.data.source === 'online') {
                                     showToast(`Mendapatkan spesifikasi ${match.data.name}...`);
                                     try {
-                                        const details = await fetchGSMArenaDetails(match.data.url);
+                                        let details;
+                                        if (match.data.specs && match.data.releaseYear) {
+                                            details = {
+                                                specs: match.data.specs,
+                                                releaseYear: match.data.releaseYear
+                                            };
+                                        } else {
+                                            details = await fetchGSMArenaDetails(match.data.url);
+                                        }
                                         const basePrice = estimateBasePrice(match.data.name);
                                         const generatedHistory = generatePriceHistory(basePrice, details.releaseYear);
                                         
@@ -1081,7 +1226,7 @@
                 const btn = document.getElementById(`tab-${level}`);
                 if(btn && !btn.classList.contains('hidden')) {
                     if(level === storageLevel) {
-                        btn.className = `px-3 py-1.5 text-xs font-bold rounded-lg bg-[#06b6d4] text-slate-900 transition-all ${level==='Max'?'hidden sm:block':''}`;
+                        btn.className = `px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-black text-slate-900 transition-all ${level==='Max'?'hidden sm:block':''}`;
                     } else {
                         btn.className = `px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition-all ${level==='Max'?'hidden sm:block':''}`;
                     }
@@ -1244,6 +1389,258 @@
             }
         }
 
+        // --- ROLLING DIGIT COUNTER IN VANILLA JS ---
+        function createRollingCounter(container, startVal, endVal) {
+            // Format start and end as IDR strings
+            const startStr = formatterIDR.format(startVal).replace(/\s/g, '').replace('Rp', '');
+            const endStr = formatterIDR.format(endVal).replace(/\s/g, '').replace('Rp', '');
+            
+            const maxLen = Math.max(startStr.length, endStr.length);
+            const paddedStart = startStr.padStart(maxLen, ' ');
+            const paddedEnd = endStr.padStart(maxLen, ' ');
+            
+            container.innerHTML = '';
+            
+            // Currency Prefix
+            const prefix = document.createElement('span');
+            prefix.className = 'text-zinc-300 font-black';
+            prefix.innerText = 'Rp ';
+            container.appendChild(prefix);
+            
+            const columns = [];
+            
+            // Create elements
+            for (let i = 0; i < maxLen; i++) {
+                const charStart = paddedStart[i];
+                const charEnd = paddedEnd[i];
+                
+                if (charStart === '.' || charStart === ',' || charEnd === '.' || charEnd === ',') {
+                    const dot = document.createElement('span');
+                    dot.className = 'text-zinc-300 font-black';
+                    dot.innerText = charEnd !== ' ' ? charEnd : charStart;
+                    container.appendChild(dot);
+                } else if (charStart === ' ' && charEnd === ' ') {
+                    // Spacer
+                    const space = document.createElement('span');
+                    space.innerText = ' ';
+                    container.appendChild(space);
+                } else {
+                    // It's a digit column
+                    const wrapper = document.createElement('span');
+                    wrapper.className = 'counter-digit-wrapper';
+                    
+                    const strip = document.createElement('span');
+                    strip.className = 'counter-digit-strip';
+                    
+                    // Populate digits 0-9
+                    for (let d = 0; d <= 9; d++) {
+                        const digitSpan = document.createElement('span');
+                        digitSpan.innerText = d;
+                        strip.appendChild(digitSpan);
+                    }
+                    
+                    wrapper.appendChild(strip);
+                    container.appendChild(wrapper);
+                    
+                    // Set initial position based on paddedStart
+                    const startDigit = parseInt(charStart);
+                    const initialY = isNaN(startDigit) ? 0 : -startDigit * 1.2;
+                    strip.style.transform = `translateY(${initialY}em)`;
+                    
+                    // Save target digit for animation
+                    const endDigit = parseInt(charEnd);
+                    columns.push({
+                        strip: strip,
+                        targetY: isNaN(endDigit) ? 0 : -endDigit * 1.2
+                    });
+                }
+            }
+            
+            // Trigger animation in the next frame
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    columns.forEach(col => {
+                        col.strip.style.transform = `translateY(${col.targetY}em)`;
+                    });
+                }, 50);
+            });
+        }
+
+        // --- MAGIC BENTO INTERACTIVE CARDS EFFECT ---
+        function initMagicBento() {
+            const cards = document.querySelectorAll('.glass-panel, .home-grid-item');
+            
+            cards.forEach(card => {
+                // Determine custom glow color based on hover border overrides
+                let glowColor = '6, 182, 212'; // Default: Cyan
+                if (card.classList.contains('hover:border-white/50')) {
+                    glowColor = '6, 182, 212';
+                } else if (card.classList.contains('hover:border-zinc-500')) {
+                    glowColor = '139, 92, 246';
+                } else if (card.classList.contains('hover:border-zinc-500')) {
+                    glowColor = '16, 185, 129';
+                } else if (card.classList.contains('hover:border-zinc-500')) {
+                    glowColor = '244, 63, 94';
+                }
+                
+                card.style.setProperty('--glow-color-rgb', glowColor);
+                
+                let isHovered = false;
+                let particles = [];
+                let particleTimeouts = [];
+                
+                // Track mouse position to update gradient center coordinates
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const relativeX = (x / rect.width) * 100;
+                    const relativeY = (y / rect.height) * 100;
+                    
+                    card.style.setProperty('--glow-x', `${relativeX}%`);
+                    card.style.setProperty('--glow-y', `${relativeY}%`);
+                    card.style.setProperty('--glow-intensity', '1');
+                    
+                    // 3D Tilt and Magnetism for desktop viewports
+                    if (window.innerWidth > 768 && card.classList.contains('tilt-enabled')) {
+                        const centerX = rect.width / 2;
+                        const centerY = rect.height / 2;
+                        const rotateX = ((y - centerY) / centerY) * -6;
+                        const rotateY = ((x - centerX) / centerX) * 6;
+                        const magnetX = (x - centerX) * 0.02;
+                        const magnetY = (y - centerY) * 0.02;
+                        
+                        gsap.to(card, {
+                            rotateX,
+                            rotateY,
+                            x: magnetX,
+                            y: magnetY,
+                            duration: 0.2,
+                            ease: 'power2.out',
+                            transformPerspective: 1000
+                        });
+                    }
+                });
+                
+                // Reset card transform and glow on mouse leave
+                card.addEventListener('mouseleave', () => {
+                    isHovered = false;
+                    card.style.setProperty('--glow-intensity', '0');
+                    
+                    gsap.to(card, {
+                        rotateX: 0,
+                        rotateY: 0,
+                        x: 0,
+                        y: 0,
+                        duration: 0.4,
+                        ease: 'power2.out'
+                    });
+                    
+                    // Clear scheduled particle spawns
+                    particleTimeouts.forEach(clearTimeout);
+                    particleTimeouts = [];
+                    
+                    // Fade out existing particles
+                    particles.forEach(p => {
+                        gsap.to(p, {
+                            scale: 0,
+                            opacity: 0,
+                            duration: 0.3,
+                            onComplete: () => p.remove()
+                        });
+                    });
+                    particles = [];
+                });
+                
+                // Spawn dynamic glowing star particles on hover
+                card.addEventListener('mouseenter', () => {
+                    isHovered = true;
+                    const rect = card.getBoundingClientRect();
+                    const particleCount = 8;
+                    
+                    for (let i = 0; i < particleCount; i++) {
+                        const timeoutId = setTimeout(() => {
+                            if (!isHovered) return;
+                            
+                            const p = document.createElement('div');
+                            p.className = 'particle';
+                            p.style.backgroundColor = `rgba(${glowColor}, 1)`;
+                            p.style.boxShadow = `0 0 6px rgba(${glowColor}, 0.8)`;
+                            p.style.left = `${Math.random() * rect.width}px`;
+                            p.style.top = `${Math.random() * rect.height}px`;
+                            
+                            card.appendChild(p);
+                            particles.push(p);
+                            
+                            gsap.fromTo(p, 
+                                { scale: 0, opacity: 0 }, 
+                                { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' }
+                            );
+                            
+                            gsap.to(p, {
+                                x: (Math.random() - 0.5) * 80,
+                                y: (Math.random() - 0.5) * 80,
+                                rotation: Math.random() * 360,
+                                duration: 2 + Math.random() * 2,
+                                ease: 'none',
+                                repeat: -1,
+                                yoyo: true
+                            });
+                            
+                            gsap.to(p, {
+                                opacity: 0.2,
+                                duration: 1 + Math.random(),
+                                ease: 'power2.inOut',
+                                repeat: -1,
+                                yoyo: true
+                            });
+                        }, i * 150);
+                        
+                        particleTimeouts.push(timeoutId);
+                    }
+                });
+                
+                // Spawn radial ripple click effect
+                card.addEventListener('click', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const maxDistance = Math.max(
+                        Math.hypot(x, y),
+                        Math.hypot(x - rect.width, y),
+                        Math.hypot(x, y - rect.height),
+                        Math.hypot(x - rect.width, y - rect.height)
+                    );
+                    
+                    const ripple = document.createElement('div');
+                    ripple.style.position = 'absolute';
+                    ripple.style.width = `${maxDistance * 2}px`;
+                    ripple.style.height = `${maxDistance * 2}px`;
+                    ripple.style.borderRadius = '50%';
+                    ripple.style.background = `radial-gradient(circle, rgba(${glowColor}, 0.4) 0%, rgba(${glowColor}, 0.15) 30%, transparent 70%)`;
+                    ripple.style.left = `${x - maxDistance}px`;
+                    ripple.style.top = `${y - maxDistance}px`;
+                    ripple.style.pointerEvents = 'none';
+                    ripple.style.zIndex = '8';
+                    
+                    card.appendChild(ripple);
+                    
+                    gsap.fromTo(ripple,
+                        { scale: 0, opacity: 1 },
+                        {
+                            scale: 1,
+                            opacity: 0,
+                            duration: 0.6,
+                            ease: 'power2.out',
+                            onComplete: () => ripple.remove()
+                        }
+                    );
+                });
+            });
+        }
+
         // --- RECENT PRICE DROPS (AUTO DETECT VIA JS) ---
         function generateDropsGrid() {
             const grid = document.getElementById('drops-grid');
@@ -1273,22 +1670,35 @@
             drops.sort((a, b) => b.pct - a.pct);
             
             // Display top 6
-            drops.slice(0, 6).forEach(drop => {
+            drops.slice(0, 6).forEach((drop, idx) => {
+                const counterId = `rolling-price-${idx}`;
                 const card = `
-                    <div class="bg-[#1e293b] rounded-lg p-4 border border-slate-700">
+                    <div class="bg-[#111] rounded-lg p-4 border border-slate-700">
                         <div class="flex justify-between items-center mb-2">
                             <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5"><svg class="w-3 h-3 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg> Price Drop</span>
                             <span class="text-xs font-semibold text-slate-500 bg-[#0b1120] px-2 py-0.5 rounded border border-slate-800">${drop.date}</span>
                         </div>
                         <div class="flex items-center gap-2 mb-1 mt-3">
-                            <span class="text-red-400 line-through text-sm font-medium opacity-80">${formatterIDR.format(drop.old)}</span>
-                            <span class="text-slate-500 text-xs">→</span>
-                            <span class="text-emerald-400 font-black tracking-wide">${formatterIDR.format(drop.new)}</span>
+                            <span id="${counterId}" class="counter-container text-zinc-300 font-black tracking-wide text-lg"></span>
                         </div>
                         <div class="text-[10px] font-bold text-slate-400 mt-2 bg-slate-800/50 px-2 py-1 rounded inline-block shadow-inner">${drop.pct}% drop</div>
                     </div>
                 `;
                 grid.innerHTML += card;
+
+                // Animate rolling counter via IntersectionObserver
+                setTimeout(() => {
+                    const el = document.getElementById(counterId);
+                    if(el) {
+                        const observer = new IntersectionObserver((entries) => {
+                            if (entries[0].intersectionRatio >= 0.4) {
+                                createRollingCounter(el, drop.old, drop.new);
+                                observer.disconnect();
+                            }
+                        }, { threshold: [0.4] });
+                        observer.observe(el);
+                    }
+                }, 50);
             });
             
             if(drops.length === 0) {
@@ -1309,6 +1719,36 @@
             // Apply Storage Multiplier to Arrays
             const idrNewHistory = meta.historyNew.map(v => v ? Math.round(v * multiplier) : null);
             const idrUsedHistory = meta.historyUsed.map(v => v ? Math.round(v * multiplier) : null);
+            
+            // Load saved scans from memory
+            const scanKeyNew = `bc_scans_${activeDevice}_${currentStorage}_new`;
+            const scanKeyUsed = `bc_scans_${activeDevice}_${currentStorage}_used`;
+            
+            const savedNewScans = JSON.parse(localStorage.getItem(scanKeyNew) || "[]");
+            const savedUsedScans = JSON.parse(localStorage.getItem(scanKeyUsed) || "[]");
+            
+            // Merge saved scans into timeline
+            savedNewScans.forEach(scan => {
+                if (!currentLabels.includes(scan.date)) {
+                    currentLabels.push(scan.date);
+                    idrNewHistory.push(scan.price);
+                    idrUsedHistory.push(null);
+                } else {
+                    const idx = currentLabels.indexOf(scan.date);
+                    idrNewHistory[idx] = scan.price;
+                }
+            });
+            
+            savedUsedScans.forEach(scan => {
+                if (!currentLabels.includes(scan.date)) {
+                    currentLabels.push(scan.date);
+                    idrUsedHistory.push(scan.price);
+                    idrNewHistory.push(null);
+                } else {
+                    const idx = currentLabels.indexOf(scan.date);
+                    idrUsedHistory[idx] = scan.price;
+                }
+            });
             
             if(ctx) {
                 if (mainChartInstance) mainChartInstance.destroy();
@@ -1342,7 +1782,9 @@
                 });
             }
             // Predict based on last history point
-            generatePrediction(idrNewHistory[idrNewHistory.length-1], idrUsedHistory[idrUsedHistory.length-1], meta.decayFactor);
+            const lastNewVal = [...idrNewHistory].reverse().find(v => v !== null) || 0;
+            const lastUsedVal = [...idrUsedHistory].reverse().find(v => v !== null) || 0;
+            generatePrediction(lastNewVal, lastUsedVal, meta.decayFactor);
         }
 
         function generatePrediction(baseNewIdr, baseUsedIdr, decayFactor) {
@@ -1368,15 +1810,27 @@
             let curUsed = baseUsedIdr;
             let curNew = baseNewIdr;
             
+            const meta = globalDeviceDB[activeDevice] || {};
+            const brand = (meta.brand || '').toLowerCase();
+            // Estimasi bulan rilis suksesor: Apple = Sep, Samsung = Jan/Feb
+            const launchMonth = brand === 'apple' ? 8 : (brand === 'samsung' ? 0 : 2);
+            
             for(let i=1; i<=steps; i++) {
-                // If the prediction touches 2027, inject the inflation/panic logic
-                if(futureLabels[i].includes('Jan 27') || futureLabels[i].includes('Feb 27')) {
-                     curUsed = Math.round(curUsed * 0.88); // Panic drop for used
-                     curNew = Math.round(curNew * 1.05); // Simulated inflation hit for new parts
-                } else {
-                     curUsed = Math.round(curUsed * decayFactor);
-                     curNew = Math.round(curNew * (decayFactor + 0.005));
+                const stepDate = new Date(startPredDate);
+                stepDate.setMonth(stepDate.getMonth() + (i * stepMonths));
+                
+                let currentDecayUsed = decayFactor;
+                let currentDecayNew = decayFactor + 0.005; // Unit baru menyusut lebih lambat
+                
+                // Successor Launch Impact: Saat suksesor rilis, harga seken jatuh ~8-12%
+                if(stepDate.getMonth() === launchMonth) {
+                     currentDecayUsed -= 0.10; 
+                     currentDecayNew -= 0.08; 
                 }
+                
+                curUsed = Math.round(curUsed * currentDecayUsed);
+                curNew = Math.round(curNew * currentDecayNew);
+                
                 projUsed.push(curUsed);
                 projNew.push(curNew);
             }
@@ -1434,52 +1888,108 @@
                 statusEl.innerText = `Target aktif: ${formatterIDR.format(val)}`;
                 statusEl.classList.remove('hidden');
                 statusEl.classList.remove('text-slate-400');
-                statusEl.classList.add('text-emerald-400');
+                statusEl.classList.add('text-zinc-300');
             }
             alert(`Target harga ${formatterIDR.format(val)} berhasil disimpan! Alarm akan berbunyi saat memindai pasar.`);
         }
 
         function checkHuntingTargetAlert(lowestPriceFound, storeName) {
+            const meta = globalDeviceDB[activeDevice];
+            const memoryKey = `lowest_price_${activeDevice}`;
+            const previousLowest = parseFloat(localStorage.getItem(memoryKey));
+            
+            if (!previousLowest || lowestPriceFound < previousLowest) {
+                localStorage.setItem(memoryKey, lowestPriceFound);
+                if (previousLowest) {
+                    showToast(`🏆 MILESTONE MEMORY: Harga ${meta.name} menyentuh rekor terendah baru: ${formatterIDR.format(lowestPriceFound)} (turun dari ${formatterIDR.format(previousLowest)})!`, true);
+                } else {
+                    showToast(`💡 MEMORY TEREKAM: Harga rekor terendah ${meta.name} diset pada ${formatterIDR.format(lowestPriceFound)}.`, false);
+                }
+            }
+            
             if(huntingTargetPrice && lowestPriceFound <= huntingTargetPrice) {
                 showToast(`🚨 ALARM HUNTING: Harga telah menyentuh ${formatterIDR.format(lowestPriceFound)} di ${storeName}! Segera sikat!`, true);
             }
         }
 
-        // --- ECOMMERCE SIMULATOR WITH DELAY LOGIC ---
+        // --- MEMORY SYSTEM FOR CHARTS & SCANS ---
+        function getCurrentDateLabel() {
+            const d = new Date();
+            const day = String(d.getDate()).padStart(2, '0');
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = months[d.getMonth()];
+            const year = String(d.getFullYear()).slice(-2);
+            return `${day} ${month} ${year}`;
+        }
+
+        function saveScanToMemory(deviceId, storage, condition, price) {
+            const scanKey = `bc_scans_${deviceId}_${storage}_${condition}`;
+            let savedScans = JSON.parse(localStorage.getItem(scanKey) || "[]");
+            const dateLabel = getCurrentDateLabel();
+            
+            const existingIndex = savedScans.findIndex(s => s.date === dateLabel);
+            if (existingIndex !== -1) {
+                savedScans[existingIndex].price = price;
+            } else {
+                savedScans.push({ date: dateLabel, price: price });
+            }
+            
+            if (savedScans.length > 15) {
+                savedScans.shift();
+            }
+            
+            localStorage.setItem(scanKey, JSON.stringify(savedScans));
+        }
+
+        // --- ECOMMERCE SCRAPER (OPTION B) WITH SMART FALLBACK (OPTION A & C) ---
         async function fetchMarketPrices(deviceId, storage, isNew) {
             const meta = globalDeviceDB[deviceId];
+            const condStr = isNew ? 'new' : 'used';
             
-            // Calculate delay based on release year
-            const currentYear = 2026;
-            const age = currentYear - meta.releaseYear;
-            let dynamicDelay = 800; // Base delay
-            
-            const alertText = document.getElementById('ecommerce-delay-alert');
-            if (alertText) alertText.classList.add('hidden');
-            
-            // Only 10% chance to trigger massive delay for old phones
-            if (age >= 4 && Math.random() < 0.10) {
-                dynamicDelay += 2500; 
-                if (alertText) alertText.classList.remove('hidden');
+            try {
+                // OPTION B: Attempt to fetch real-time from backend scraper (3k.py)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+                const res = await fetch(`http://localhost:3000/api/scrape?device=${encodeURIComponent(meta.name)}&condition=${condStr}&storage=${storage}`, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (!res.ok) throw new Error("Backend Scraper returned error status");
+                
+                const data = await res.json();
+                if (data.error || (!data.tokped && !data.shopee && !data.blibli)) {
+                    throw new Error("Scraper Blocked by Cloudflare/Anti-Bot");
+                }
+                
+                return {
+                    tokped: data.tokped || data.shopee + 50000,
+                    shopee: data.shopee || data.tokped - 25000,
+                    blibli: data.blibli || data.tokped + 100000,
+                    eraspace: data.tokped ? data.tokped + 300000 : 0,
+                    source: data.source || 'live'
+                };
+            } catch (err) {
+                // FALLBACK IF OPTION B FAILS (or python server is off)
+                console.warn(`[SYSTEM] Real-time Scraper (Option B) failed or offline: ${err.message}.`);
+                console.warn("[SYSTEM] Seamlessly falling back to local Market Valuation Model (Option A).");
+                
+                return new Promise((resolve) => {
+                    // Simulate a small delay for UI processing
+                    setTimeout(() => {
+                        const multiplier = getStorageMultiplier(storage);
+                        const arraySource = isNew ? meta.historyNew : meta.historyUsed;
+                        const baseIdr = arraySource[arraySource.length-1] * multiplier;
+
+                        // OPTION A & C: Highly realistic market valuation based on curves
+                        resolve({
+                            tokped: baseIdr - 50000,
+                            shopee: baseIdr - 25000,
+                            blibli: baseIdr + 150000,
+                            eraspace: baseIdr + 300000,
+                            source: 'local_math'
+                        });
+                    }, 600); 
+                });
             }
-
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    if (alertText) alertText.classList.add('hidden');
-                    
-                    const multiplier = getStorageMultiplier(storage);
-                    const arraySource = isNew ? meta.historyNew : meta.historyUsed;
-                    const baseIdr = arraySource[arraySource.length-1] * multiplier;
-
-                    // TODO: GANTI DENGAN FETCH API BACKEND LU 
-                    resolve({
-                        tokped: baseIdr - 50000,
-                        shopee: baseIdr - 25000,
-                        blibli: baseIdr + 150000,
-                        eraspace: baseIdr + 300000
-                    });
-                }, dynamicDelay); 
-            });
         }
 
         async function scanLiveMarket() {
@@ -1490,14 +2000,37 @@
             btn.innerHTML = `<svg class="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Memindai...</span>`;
             btn.disabled = true;
 
+            let loadingStep = 0;
+            const loadingMessages = [
+                "Menghubungi ScraperAPI...",
+                "Membuka browser virtual (Tokopedia)...",
+                "Mem-bypass proteksi anti-bot...",
+                "Merender konten JavaScript...",
+                "Mengekstrak daftar harga produk...",
+                "Menghitung estimasi harga Shopee...",
+                "Memformat data pasar live..."
+            ];
+
             grid.innerHTML = `
-                <div class="bg-[#050b14] p-4 rounded-xl border border-slate-800 animate-pulse h-24 flex items-center justify-center">
-                    <span class="text-xs font-bold text-slate-500 flex items-center gap-2"><div class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div> Memuat Tokopedia...</span>
-                </div>
-                <div class="bg-[#050b14] p-4 rounded-xl border border-slate-800 animate-pulse h-24 flex items-center justify-center">
-                    <span class="text-xs font-bold text-slate-500 flex items-center gap-2"><div class="w-2 h-2 bg-orange-500 rounded-full animate-ping"></div> Memuat Shopee...</span>
+                <div class="col-span-full bg-black/60 p-8 rounded-xl border border-slate-800 animate-pulse h-32 flex flex-col items-center justify-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <svg class="animate-spin w-5 h-5 text-[#06b6d4]" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm font-bold text-white">Memindai Pasar Retail</span>
+                    </div>
+                    <span id="scan-loading-text" class="text-xs text-slate-400 font-semibold transition-all duration-300">Menghubungi ScraperAPI...</span>
                 </div>
             `;
+
+            const intervalId = setInterval(() => {
+                loadingStep = (loadingStep + 1) % loadingMessages.length;
+                const msgEl = document.getElementById('scan-loading-text');
+                if (msgEl) {
+                    msgEl.innerText = loadingMessages[loadingStep];
+                }
+            }, 4000);
 
             try {
                 const isNew = currentMarketCond === 'new';
@@ -1521,15 +2054,17 @@
                     const isCheapest = idx === 0;
                     const borderCls = isCheapest ? 'border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'border-slate-800';
                     const displayVal = formatterIDR.format(store.val);
-                    const subtitle = 'Stock Indonesia';
+                    const subtitle = liveData.source === 'live' 
+                        ? 'Harga Scraped Real-time' 
+                        : (liveData.source === 'estimate' ? 'Estimasi Intelijen (Live block)' : 'Model Matematika Lokal (Offline)');
                     
                     grid.innerHTML += `
-                        <div class="bg-[#050b14] p-4 rounded-xl border ${borderCls} relative transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group" onclick="window.open('${store.link}', '_blank')">
+                        <div class="bg-black p-4 rounded-xl border ${borderCls} relative transition-all cursor-pointer hover:scale-[1.02] active:scale-95 group" onclick="window.open('${store.link}', '_blank')">
                             ${isCheapest ? `<div class="absolute -top-2 -right-2 bg-emerald-500 text-slate-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10">TERMURAH</div>` : ''}
                             <div class="flex items-center gap-3 mb-2">
                                 <div class="w-8 h-8 ${store.bg} rounded-lg flex items-center justify-center font-black text-white text-sm">${store.icon}</div>
                                 <div class="flex-1">
-                                    <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors flex items-center gap-1">${store.name} ➔</p>
+                                    <p class="text-sm font-bold text-white group-hover:text-white transition-colors flex items-center gap-1">${store.name} ➔</p>
                                     <p class="text-[9px] text-slate-500 leading-none">Local Vendor</p>
                                 </div>
                             </div>
@@ -1541,11 +2076,18 @@
 
                 if (listStores.length > 0) {
                     checkHuntingTargetAlert(listStores[0].val, listStores[0].name);
+                    
+                    // Save to memory system
+                    saveScanToMemory(activeDevice, currentStorage, currentMarketCond, listStores[0].val);
+                    
+                    // Refresh charts to display the new custom scan point
+                    initCharts();
                 }
 
             } catch (err) {
                 console.error("API Fetch Error", err);
             } finally {
+                clearInterval(intervalId);
                 btn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span>Scan Market</span>`;
                 btn.disabled = false;
             }
@@ -1556,7 +2098,7 @@
             const btnNew = document.getElementById('btn-cond-new'); 
             const btnUsed = document.getElementById('btn-cond-used');
             
-            const activeClass = "px-3 py-1 text-[10px] font-bold rounded-md bg-[#06b6d4] text-slate-900 transition-all shadow-sm";
+            const activeClass = "px-3 py-1 text-[10px] font-bold rounded-md bg-white text-black text-slate-900 transition-all shadow-sm";
             const inactiveClass = "px-3 py-1 text-[10px] font-bold rounded-md text-slate-400 hover:text-white transition-all bg-transparent border border-slate-700";
             
             if(cond === 'new') { if(btnNew) { btnNew.className = activeClass; btnUsed.className = inactiveClass; } } 
@@ -1743,7 +2285,7 @@
             if (list) {
                 list.innerHTML = '';
                 savingsHistory.forEach(item => {
-                    list.innerHTML += `<div class="flex justify-between items-center bg-[#1e293b] p-2.5 rounded-lg text-xs border border-slate-700 mb-2"><span class="text-slate-400 font-bold">${item.date}</span><span class="font-black text-emerald-400">+ ${formatterIDR.format(item.amount)}</span></div>`;
+                    list.innerHTML += `<div class="flex justify-between items-center bg-[#111] p-2.5 rounded-lg text-xs border border-slate-700 mb-2"><span class="text-slate-400 font-bold">${item.date}</span><span class="font-black text-zinc-300">+ ${formatterIDR.format(item.amount)}</span></div>`;
                 });
             }
         }
